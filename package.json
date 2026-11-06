@@ -1,0 +1,27 @@
+{
+  "name": "ai-agency-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Agency OS — empresa virtual 3D operada por agentes de IA autônomos",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @agency/web",
+    "build": "npm run build -w @agency/web",
+    "start": "npm run start -w @agency/web",
+    "typecheck": "npm run typecheck -w @agency/core && npm run typecheck -w @agency/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "node scripts/e2e-smoke.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}
