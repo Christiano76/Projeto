@@ -101,13 +101,13 @@ export function EventConsole({
     }
   };
 
-  const input = 'w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none';
+  const input = 'input';
 
   return (
     <form onSubmit={submit} className="space-y-2 text-sm">
       {!defaultEmployeeId && (
         <label className="block">
-          <span className="text-xs font-medium text-slate-600">Funcionário</span>
+          <span className="text-xs font-medium text-muted">Funcionário</span>
           <select className={input} value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
             {employees.map((e) => (
               <option key={e.id} value={e.id}>
@@ -118,7 +118,7 @@ export function EventConsole({
         </label>
       )}
       <label className="block">
-        <span className="text-xs font-medium text-slate-600">Evento</span>
+        <span className="text-xs font-medium text-muted">Evento</span>
         <select className={input} value={type} onChange={(e) => setType(e.target.value as AgentEventType)}>
           {(Object.keys(FIELDS) as AgentEventType[]).map((t) => (
             <option key={t} value={t}>
@@ -130,7 +130,7 @@ export function EventConsole({
       <div className={compact ? 'space-y-2' : 'grid gap-2 sm:grid-cols-2'}>
         {fields.map((f) => (
           <label key={f} className="block">
-            <span className="text-xs font-medium text-slate-600">{FIELD_LABELS[f]}</span>
+            <span className="text-xs font-medium text-muted">{FIELD_LABELS[f]}</span>
             {f === 'toEmployeeId' ? (
               <select className={input} value={values[f] ?? ''} onChange={(e) => setValues({ ...values, [f]: e.target.value })}>
                 <option value="">Selecione…</option>
@@ -157,12 +157,12 @@ export function EventConsole({
         <button
           type="submit"
           disabled={busy || !effectiveEmployeeId}
-          className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+          className="btn btn-primary px-3 py-1.5 text-sm"
         >
           {busy ? 'Enviando…' : 'Registrar evento'}
         </button>
         {result && (
-          <span role="status" className={result.ok ? 'text-xs text-emerald-700' : 'text-xs text-rose-700'}>
+          <span role="status" key={result.text + String(result.ok)} className={`anim-item-in text-xs ${result.ok ? 'text-success' : 'text-danger'}`}>
             {result.text}
           </span>
         )}

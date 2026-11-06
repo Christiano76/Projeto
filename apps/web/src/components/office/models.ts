@@ -34,9 +34,9 @@ const cyl = (rTop: number, rBottom: number, height: number, segments = 8): PartG
   segments,
 });
 
-const WOOD = '#b08968';
-const WOOD_DARK = '#7f5539';
-const METAL = '#94a3b8';
+const WOOD = '#c7d0db'; // carvalho claro acinzentado
+const WOOD_DARK = '#3a4659'; // grafite azulado
+const METAL = '#9aa9bc';
 const DARK = '#334155';
 const WHITE = '#f8fafc';
 
@@ -86,19 +86,19 @@ export const MODELS: Record<ObjectType, Part[]> = {
     ...legs4(0.44, 0.42, 0.43, METAL, 0.04, 0.035),
   ],
   sofa: [
-    { geometry: box([2.2, 0.38, 0.9]), position: [0, 0.19, 0], color: 'prop:color', fallbackColor: '#5b7f95', castShadow: true },
-    { geometry: box([2.2, 0.5, 0.22]), position: [0, 0.6, -0.34], color: 'prop:color', fallbackColor: '#5b7f95', castShadow: true },
-    { geometry: box([0.2, 0.58, 0.9]), position: [1.0, 0.29, 0], color: 'prop:color', fallbackColor: '#4f6d80' },
-    { geometry: box([0.2, 0.58, 0.9]), position: [-1.0, 0.29, 0], color: 'prop:color', fallbackColor: '#4f6d80' },
-    { geometry: box([0.58, 0.1, 0.6]), position: [-0.6, 0.43, 0.08], color: '#7aa0b8' },
-    { geometry: box([0.58, 0.1, 0.6]), position: [0, 0.43, 0.08], color: '#7aa0b8' },
-    { geometry: box([0.58, 0.1, 0.6]), position: [0.6, 0.43, 0.08], color: '#7aa0b8' },
+    { geometry: box([2.2, 0.38, 0.9]), position: [0, 0.19, 0], color: 'prop:color', fallbackColor: '#35506e', castShadow: true },
+    { geometry: box([2.2, 0.5, 0.22]), position: [0, 0.6, -0.34], color: 'prop:color', fallbackColor: '#35506e', castShadow: true },
+    { geometry: box([0.2, 0.58, 0.9]), position: [1.0, 0.29, 0], color: 'prop:color', fallbackColor: '#2c4460' },
+    { geometry: box([0.2, 0.58, 0.9]), position: [-1.0, 0.29, 0], color: 'prop:color', fallbackColor: '#2c4460' },
+    { geometry: box([0.58, 0.1, 0.6]), position: [-0.6, 0.43, 0.08], color: '#4f7196' },
+    { geometry: box([0.58, 0.1, 0.6]), position: [0, 0.43, 0.08], color: '#4f7196' },
+    { geometry: box([0.58, 0.1, 0.6]), position: [0.6, 0.43, 0.08], color: '#4f7196' },
   ],
   armchair: [
-    { geometry: box([0.85, 0.38, 0.85]), position: [0, 0.19, 0], color: '#a26769', castShadow: true },
-    { geometry: box([0.85, 0.48, 0.18]), position: [0, 0.6, -0.33], color: '#8e5557', castShadow: true },
-    { geometry: box([0.14, 0.56, 0.85]), position: [0.355, 0.28, 0], color: '#8e5557' },
-    { geometry: box([0.14, 0.56, 0.85]), position: [-0.355, 0.28, 0], color: '#8e5557' },
+    { geometry: box([0.85, 0.38, 0.85]), position: [0, 0.19, 0], color: '#4a6b8f', castShadow: true },
+    { geometry: box([0.85, 0.48, 0.18]), position: [0, 0.6, -0.33], color: '#3b5878', castShadow: true },
+    { geometry: box([0.14, 0.56, 0.85]), position: [0.355, 0.28, 0], color: '#3b5878' },
+    { geometry: box([0.14, 0.56, 0.85]), position: [-0.355, 0.28, 0], color: '#3b5878' },
   ],
   coffee_table: [
     { geometry: box([1.1, 0.05, 0.6]), position: [0, 0.4, 0], color: WOOD, castShadow: true },
@@ -108,22 +108,22 @@ export const MODELS: Record<ObjectType, Part[]> = {
     { geometry: box([0.9, 0.9, 0.55]), position: [0, 0.45, 0], color: WHITE, castShadow: true },
     { geometry: box([0.9, 0.04, 0.57]), position: [0, 0.92, 0], color: WOOD_DARK },
     { geometry: box([0.32, 0.42, 0.3]), position: [-0.15, 1.15, 0], color: '#1f2937', castShadow: true },
-    { geometry: cyl(0.04, 0.035, 0.09, 6), position: [0.2, 0.985, 0.05], color: '#e11d48' },
+    { geometry: cyl(0.04, 0.035, 0.09, 6), position: [0.2, 0.985, 0.05], color: '#22d3ee' },
   ],
   water_cooler: [
     { geometry: box([0.34, 0.95, 0.34]), position: [0, 0.475, 0], color: WHITE, castShadow: true },
     { geometry: cyl(0.14, 0.14, 0.42, 8), position: [0, 1.16, 0], color: '#7dd3fc' },
   ],
   plant: [
-    { geometry: cyl(0.2, 0.15, 0.4, 7), position: [0, 0.2, 0], color: '#c2410c', castShadow: true },
-    { geometry: { kind: 'ico', radius: 0.34, detail: 0 }, position: [0, 0.74, 0], color: '#4d7c0f', castShadow: true },
-    { geometry: { kind: 'ico', radius: 0.24, detail: 0 }, position: [0.06, 1.04, -0.04], color: '#65a30d', castShadow: true },
+    { geometry: cyl(0.2, 0.15, 0.4, 7), position: [0, 0.2, 0], color: '#e8eef5', castShadow: true },
+    { geometry: { kind: 'ico', radius: 0.34, detail: 0 }, position: [0, 0.74, 0], color: '#2f7d6b', castShadow: true },
+    { geometry: { kind: 'ico', radius: 0.24, detail: 0 }, position: [0.06, 1.04, -0.04], color: '#3fa58a', castShadow: true },
   ],
   bookshelf: [
     { geometry: box([1.6, 1.9, 0.4]), position: [0, 0.95, 0], color: WOOD_DARK, castShadow: true },
-    { geometry: box([1.4, 0.3, 0.3]), position: [0, 1.5, 0.06], color: '#1d4ed8' },
-    { geometry: box([1.4, 0.3, 0.3]), position: [0, 1.0, 0.06], color: '#b91c1c' },
-    { geometry: box([1.4, 0.3, 0.3]), position: [0, 0.5, 0.06], color: '#047857' },
+    { geometry: box([1.4, 0.3, 0.3]), position: [0, 1.5, 0.06], color: '#1d6bf3' },
+    { geometry: box([1.4, 0.3, 0.3]), position: [0, 1.0, 0.06], color: '#0e7490' },
+    { geometry: box([1.4, 0.3, 0.3]), position: [0, 0.5, 0.06], color: '#64748b' },
   ],
   filing_cabinet: [
     { geometry: box([0.5, 1.1, 0.6]), position: [0, 0.55, 0], color: '#9ca3af', castShadow: true },
@@ -134,7 +134,7 @@ export const MODELS: Record<ObjectType, Part[]> = {
     { geometry: box([1.8, 1.0, 0.04]), position: [0, 1.45, 0], color: WHITE },
     { geometry: box([1.86, 0.05, 0.08]), position: [0, 0.93, 0.02], color: METAL },
     { geometry: box([0.5, 0.02, 0.01]), position: [-0.4, 1.7, 0.025], color: '#2563eb' },
-    { geometry: box([0.8, 0.02, 0.01]), position: [0.2, 1.55, 0.025], color: '#dc2626' },
+    { geometry: box([0.8, 0.02, 0.01]), position: [0.2, 1.55, 0.025], color: '#06b6d4' },
   ],
   tv_screen: [
     { geometry: box([1.8, 1.02, 0.06]), position: [0, 1.5, 0], color: '#0f172a' },
@@ -143,7 +143,7 @@ export const MODELS: Record<ObjectType, Part[]> = {
   reception_counter: [
     { geometry: box([2.6, 1.05, 0.8]), position: [0, 0.525, 0], color: WHITE, castShadow: true },
     { geometry: box([2.7, 0.05, 0.9]), position: [0, 1.075, 0], color: WOOD },
-    { geometry: box([2.62, 0.12, 0.02]), position: [0, 0.75, 0.41], color: '#7c3aed' },
+    { geometry: box([2.62, 0.12, 0.02]), position: [0, 0.75, 0.41], color: '#1d6bf3' },
   ],
   waiting_bench: [
     { geometry: box([1.6, 0.08, 0.5]), position: [0, 0.44, 0], color: WOOD, castShadow: true },
@@ -151,7 +151,7 @@ export const MODELS: Record<ObjectType, Part[]> = {
     ...legs4(1.6, 0.5, 0.4, METAL),
   ],
   rug: [
-    { geometry: box([2.4, 0.012, 1.6]), position: [0, 0.006, 0], color: 'prop:color', fallbackColor: '#9d8189' },
+    { geometry: box([2.4, 0.012, 1.6]), position: [0, 0.006, 0], color: 'prop:color', fallbackColor: '#3d4f66' },
   ],
   server_rack: [
     { geometry: box([0.7, 2.0, 0.8]), position: [0, 1.0, 0], color: '#111827', castShadow: true },
@@ -162,12 +162,12 @@ export const MODELS: Record<ObjectType, Part[]> = {
   floor_lamp: [
     { geometry: cyl(0.15, 0.17, 0.04, 8), position: [0, 0.02, 0], color: DARK },
     { geometry: cyl(0.02, 0.02, 1.5, 5), position: [0, 0.79, 0], color: DARK },
-    { geometry: cyl(0.12, 0.2, 0.28, 8), position: [0, 1.6, 0], color: '#fde68a', emissive: true },
+    { geometry: cyl(0.12, 0.2, 0.28, 8), position: [0, 1.6, 0], color: '#e0f2fe', emissive: true },
   ],
   wall_sign: [
-    { geometry: box([2.0, 0.6, 0.05]), position: [0, 1.7, 0], color: '#7c3aed' },
+    { geometry: box([2.0, 0.6, 0.05]), position: [0, 1.7, 0], color: '#0b1526' },
     { geometry: box([1.5, 0.1, 0.02]), position: [0, 1.75, 0.035], color: WHITE, emissive: true },
-    { geometry: box([1.0, 0.06, 0.02]), position: [0, 1.6, 0.035], color: '#c4b5fd', emissive: true },
+    { geometry: box([1.0, 0.06, 0.02]), position: [0, 1.6, 0.035], color: '#7dd3fc', emissive: true },
   ],
 };
 

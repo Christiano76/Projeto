@@ -22,12 +22,12 @@ export type DepartmentSeed = Omit<Department, 'id'>;
 export type EmployeeSeed = Omit<EmployeeProfile, 'id'>;
 
 export const DEFAULT_DEPARTMENTS: DepartmentSeed[] = [
-  { key: 'direcao', name: 'Diretoria', color: '#7c3aed' },
+  { key: 'direcao', name: 'Diretoria', color: '#3b82f6' },
   { key: 'gerencia', name: 'Gerência', color: '#2563eb' },
   { key: 'prospeccao', name: 'Prospecção', color: '#0891b2' },
-  { key: 'comercial', name: 'Comercial', color: '#db2777' },
+  { key: 'comercial', name: 'Comercial', color: '#6366f1' },
   { key: 'desenvolvimento', name: 'Desenvolvimento', color: '#059669' },
-  { key: 'financeiro', name: 'Financeiro', color: '#d97706' },
+  { key: 'financeiro', name: 'Financeiro', color: '#14b8a6' },
 ];
 
 /** Modelos padrão — configuráveis por agente (tabela `agents`). Independentes de fornecedor. */

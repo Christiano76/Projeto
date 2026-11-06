@@ -13,6 +13,7 @@ import {
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { prefersReducedMotion } from '@/lib/theme';
 import { getMaterial } from './geometry';
 import { setLabelTarget } from './labels';
 
@@ -137,6 +138,14 @@ function AvatarImpl({ employee, anchor, entrance, activity, grid, selected, onSe
     () => new THREE.MeshBasicMaterial({ color: statusColor, transparent: true, opacity: 0.85, toneMapped: false }),
     [statusColor],
   );
+  const pulseMat = useMemo(
+    () => new THREE.MeshBasicMaterial({ color: statusColor, transparent: true, opacity: 0, toneMapped: false, depthWrite: false }),
+    [statusColor],
+  );
+  const pulse = useRef<THREE.Mesh>(null);
+  /** Indicador animado de atividade: só pulsa quando há trabalho/colaboração real. */
+  const pulsing = employee.runtime.status === 'working' || employee.runtime.status === 'meeting';
+  const reducedMotion = useMemo(() => prefersReducedMotion(), []);
 
   useFrame((state, rawDt) => {
     const m = motion.current;
@@ -194,6 +203,15 @@ function AvatarImpl({ employee, anchor, entrance, activity, grid, selected, onSe
       kneeL: kneeL.current!,
       kneeR: kneeR.current!,
     });
+    if (pulse.current) {
+      const on = pulsing && !reducedMotion;
+      pulse.current.visible = on;
+      if (on) {
+        const p = (m.t * 0.7) % 1;
+        pulse.current.scale.setScalar(1 + p * 0.9);
+        pulseMat.opacity = 0.55 * (1 - p);
+      }
+    }
     if (badge.current) {
       badge.current.rotation.y += dt * 2;
       badge.current.position.y = (seated ? anchor.seatHeight - HIP : 0) + 1.95 + Math.sin(m.t * 3) * 0.04;
@@ -219,6 +237,7 @@ function AvatarImpl({ employee, anchor, entrance, activity, grid, selected, onSe
     >
       {/* Anel de status no chão: cor = status operacional real */}
       <mesh geometry={ringGeo} material={ringMat} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} scale={selected ? 1.35 : 1} />
+      <mesh ref={pulse} geometry={ringGeo} material={pulseMat} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]} visible={false} />
 
       <group ref={body}>
         {/* Pernas */}

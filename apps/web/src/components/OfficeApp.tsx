@@ -14,7 +14,7 @@ import { TopBar } from './hud/TopBar';
 const OfficeScene = dynamic(() => import('./office/OfficeScene').then((m) => m.OfficeScene), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full items-center justify-center text-sm text-slate-500">Carregando escritório 3D…</div>
+    <div className="flex h-full items-center justify-center text-sm text-muted">Carregando escritório 3D…</div>
   ),
 });
 

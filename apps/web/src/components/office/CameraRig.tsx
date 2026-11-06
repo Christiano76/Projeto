@@ -5,6 +5,7 @@ import { MapControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { prefersReducedMotion } from '@/lib/theme';
 
 /** Subconjunto da API do MapControls (three-stdlib) usado aqui. */
 interface MapControlsImpl extends THREE.EventDispatcher<{ start: object; change: object; end: object }> {
@@ -155,7 +156,8 @@ export function CameraRig({ layout, focus, focusNonce, rotateRequest, follow }: 
     }
 
     if (anim.current.active) {
-      const k = 1 - Math.exp(-dt * 6);
+      // Com movimento reduzido, a câmera salta direto ao destino.
+      const k = prefersReducedMotion() ? 1 : 1 - Math.exp(-dt * 6);
       const a = anim.current;
       c.target.lerp(a.target, k);
       ortho.zoom += (a.zoom - ortho.zoom) * k;

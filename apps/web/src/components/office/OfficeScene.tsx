@@ -14,11 +14,14 @@ import {
 import { PerformanceMonitor } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type * as THREE from 'three';
 import { serverNow, useOfficeStore } from '@/store/officeStore';
 import { Avatar } from './Avatar';
 import { CameraRig, type Bounds } from './CameraRig';
 import { Furniture, MonitorScreens, type ScreenState } from './Furniture';
 import { LabelProjector } from './labels';
+import { SCENE_PALETTES } from './sceneTheme';
+import { ThemeAnimator } from './ThemeAnimator';
 import { Floors, WALL_HEIGHTS, Walls } from './Structure';
 
 /** Re-render apenas quando uma atividade derivada expira (ex.: fim da comemoração). */
@@ -53,6 +56,9 @@ export function OfficeScene({ rotateRequest }: { rotateRequest: { nonce: number;
   const shadows = quality === 'high';
   const layout = snapshot.layout;
   const now = useActivityClock();
+  const hemiRef = useRef<THREE.HemisphereLight>(null);
+  const sunRef = useRef<THREE.DirectionalLight>(null);
+  const ambientRef = useRef<THREE.AmbientLight>(null);
 
   const grid = useMemo(() => buildNavGrid(layout), [layout]);
   const entrance = useMemo(() => getEntranceAnchor(layout), [layout]);
@@ -107,13 +113,16 @@ export function OfficeScene({ rotateRequest }: { rotateRequest: { nonce: number;
       onPointerMissed={() => select(null)}
       aria-label="Escritório 3D da agência"
     >
-      <color attach="background" args={['#e7ecef']} />
+      <ThemeAnimator hemi={hemiRef} sun={sunRef} ambient={ambientRef} />
       <PerformanceMonitor onDecline={() => setQuality('low')} flipflops={2} onFallback={() => setQuality('low')} />
 
-      <hemisphereLight args={['#fff7ed', '#94a3b8', 1.1]} />
+      {/* Cores/intensidades iniciais do tema claro; o ThemeAnimator interpola conforme o tema */}
+      <hemisphereLight ref={hemiRef} args={[SCENE_PALETTES.light.sky, SCENE_PALETTES.light.groundLight, SCENE_PALETTES.light.hemiIntensity]} />
+      <ambientLight ref={ambientRef} color={SCENE_PALETTES.light.ambient} intensity={SCENE_PALETTES.light.ambientIntensity} />
       <directionalLight
+        ref={sunRef}
         position={[center[0] + 18, 30, center[2] + 12]}
-        intensity={1.6}
+        intensity={SCENE_PALETTES.light.sunIntensity}
         castShadow={shadows}
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-span * 0.7}

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { BrandMark } from '@/components/BrandMark';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
 export function LoginForm() {
@@ -34,22 +35,22 @@ export function LoginForm() {
     router.refresh();
   };
 
-  const input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none';
+  const input = 'input py-2';
   return (
-    <form onSubmit={submit} className="glass w-full max-w-sm space-y-4 rounded-2xl p-6">
+    <form onSubmit={submit} className="glass anim-panel-in w-full max-w-sm space-y-4 rounded-2xl p-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 font-black text-white">AI</div>
+        <BrandMark size={40} />
         <div>
           <h1 className="text-lg font-bold">AI Agency OS</h1>
-          <p className="text-xs text-slate-500">{mode === 'signin' ? 'Entre para acessar sua empresa' : 'Crie a conta do diretor'}</p>
+          <p className="text-xs text-muted">{mode === 'signin' ? 'Entre para acessar sua empresa' : 'Crie a conta do diretor'}</p>
         </div>
       </div>
       <label className="block text-sm">
-        <span className="text-xs font-medium text-slate-600">E-mail</span>
+        <span className="text-xs font-medium text-muted">E-mail</span>
         <input className={input} type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </label>
       <label className="block text-sm">
-        <span className="text-xs font-medium text-slate-600">Senha</span>
+        <span className="text-xs font-medium text-muted">Senha</span>
         <input
           className={input}
           type="password"
@@ -60,11 +61,11 @@ export function LoginForm() {
           onChange={(e) => setPassword(e.target.value)}
         />
       </label>
-      {message && <p className={`text-sm ${message.ok ? 'text-emerald-700' : 'text-rose-700'}`}>{message.text}</p>}
-      <button disabled={busy} className="w-full rounded-lg bg-brand-600 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+      {message && <p role="status" className={`anim-item-in text-sm ${message.ok ? 'text-success' : 'text-danger'}`}>{message.text}</p>}
+      <button disabled={busy} className="btn btn-primary w-full py-2 text-sm">
         {busy ? 'Aguarde…' : mode === 'signin' ? 'Entrar' : 'Criar conta'}
       </button>
-      <button type="button" className="w-full text-xs text-brand-700 hover:underline" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
+      <button type="button" className="focus-ring w-full rounded text-xs text-accent hover:underline" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
         {mode === 'signin' ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entrar'}
       </button>
     </form>

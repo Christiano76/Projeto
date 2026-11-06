@@ -19,16 +19,16 @@ export default async function EventsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold">Eventos dos agentes</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-bold tracking-tight">Eventos dos agentes</h1>
+        <p className="text-sm text-muted">
           Registro imutável (append-only) de tudo que altera o estado dos funcionários. O escritório 3D é a projeção visual destes eventos.
         </p>
       </header>
 
       {viewer.role === 'director' && (
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-700">Console de eventos (teste manual)</h2>
-          <p className="mb-3 text-xs text-slate-500">
+        <section className="card anim-panel-in p-4">
+          <h2 className="text-sm font-bold text-fg">Console de eventos (teste manual)</h2>
+          <p className="mb-3 text-xs text-muted">
             Até a ativação dos agentes (Fase 2), use este console para validar o sistema de estados. Os eventos ficam marcados como
             “manual” e passam pelas mesmas regras de transição.
           </p>
@@ -36,9 +36,9 @@ export default async function EventsPage() {
         </section>
       )}
 
-      <section className="overflow-x-auto rounded-2xl bg-white p-4 shadow-sm">
+      <section className="card anim-panel-in overflow-x-auto p-4">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs uppercase text-slate-500">
+          <thead className="text-xs uppercase text-muted">
             <tr>
               <th className="py-2 pr-4">Quando</th>
               <th className="py-2 pr-4">Funcionário</th>
@@ -50,14 +50,14 @@ export default async function EventsPage() {
           <tbody>
             {events.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-4 text-slate-500">
+                <td colSpan={5} className="py-4 text-muted">
                   Nenhum evento registrado.
                 </td>
               </tr>
             )}
             {events.map((ev) => (
-              <tr key={ev.id} className="border-t border-slate-100">
-                <td className="py-1.5 pr-4 whitespace-nowrap text-slate-500">{formatDateTime(ev.createdAt)}</td>
+              <tr key={ev.id} className="border-t border-line transition-colors hover:bg-accent-soft">
+                <td className="py-1.5 pr-4 whitespace-nowrap text-muted">{formatDateTime(ev.createdAt)}</td>
                 <td className="py-1.5 pr-4">{names.get(ev.employeeId) ?? ev.employeeId}</td>
                 <td className="py-1.5 pr-4 font-mono text-xs">{ev.type}</td>
                 <td className="py-1.5 pr-4">{describeEvent(ev)}</td>

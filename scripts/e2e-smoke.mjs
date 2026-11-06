@@ -154,10 +154,121 @@ async function main() {
   check(await page.getByText('Tarefas concluídas', { exact: true }).isVisible(), 'painel administrativo carrega');
   await page.screenshot({ path: path.join(OUT, '06-admin.png'), fullPage: true });
 
+  await themeChecks(browser, errors);
+
   const relevantErrors = errors.filter((e) => !/GPU stall|WebGL|swiftshader|ReadPixels/i.test(e));
   check(relevantErrors.length === 0, `sem erros no console${relevantErrors.length ? ': ' + relevantErrors.join(' | ') : ''}`);
 
   await browser.close();
+}
+
+/** Lê a cor média de uma região da tela (decodificando a captura no próprio navegador). */
+async function sampleColor(page, clip) {
+  const b64 = (await page.screenshot({ clip })).toString('base64');
+  return page.evaluate(async (data) => {
+    const img = new Image();
+    img.src = 'data:image/png;base64,' + data;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.width;
+    c.height = img.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, c.width, c.height).data;
+    let r = 0, g = 0, b = 0;
+    for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+    const n = d.length / 4;
+    return { r: r / n, g: g / n, b: b / n, lum: (0.2126 * r + 0.7152 * g + 0.0722 * b) / n };
+  }, b64);
+}
+
+async function themeChecks(browser, errors) {
+  const STORAGE = 'agency-os:theme';
+  // 1) Sem flash: com preferência salva "dark", o <html> já nasce escuro.
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, colorScheme: 'light' });
+  await ctx.addInitScript(([k]) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(k, 'dark'); sessionStorage.setItem('seeded', '1'); } }, [STORAGE]);
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(String(e)));
+  const response = await page.goto(BASE, { waitUntil: 'commit' });
+  check(!!response, 'página carregada para teste de tema');
+  await page.waitForLoadState('domcontentloaded');
+  const early = await page.evaluate(() => document.documentElement.dataset.theme);
+  check(early === 'dark', `tema salvo aplicado antes da hidratação (data-theme=${early})`);
+  const htmlSrc = await (await fetch(BASE)).text();
+  check(htmlSrc.indexOf('agency-os:theme') < htmlSrc.indexOf('<body'), 'script de tema roda no <head> (antes do corpo)');
+
+  await page.waitForSelector('canvas');
+  await sleep(3500);
+  const bodyBgDark = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const sceneDark = await sampleColor(page, { x: 1300, y: 500, width: 40, height: 40 });
+  await page.screenshot({ path: path.join(OUT, '10-escuro-escritorio.png') });
+
+  // 2) Alternância animada + persistência
+  await page.getByTestId('theme-toggle').first().click();
+  const during = await page.evaluate(() => document.documentElement.classList.contains('theme-transition'));
+  check(during, 'transição animada ativa durante a troca de tema');
+  check((await page.evaluate(() => document.documentElement.dataset.theme)) === 'light', 'botão alterna para o modo claro');
+  await sleep(2000); // transição gradual da iluminação 3D
+  const sceneLight = await sampleColor(page, { x: 1300, y: 500, width: 40, height: 40 });
+  const bodyBgLight = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  check(bodyBgDark !== bodyBgLight, `interface muda de cor (${bodyBgDark} → ${bodyBgLight})`);
+  check(sceneLight.lum > sceneDark.lum + 60, `escritório 3D clareia (lum ${sceneDark.lum.toFixed(0)} → ${sceneLight.lum.toFixed(0)})`);
+  check(sceneDark.b >= sceneDark.r, 'modo escuro com tom frio/azulado');
+  await page.screenshot({ path: path.join(OUT, '11-claro-escritorio.png') });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  check((await page.evaluate(() => document.documentElement.dataset.theme)) === 'light', 'preferência mantida após recarregar');
+
+  // 3) Todas as telas nos dois temas
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate(([k, t]) => localStorage.setItem(k, t), [STORAGE, theme]);
+    for (const [route, name] of [['/admin', 'admin'], ['/admin/events', 'eventos']]) {
+      await page.goto(BASE + route, { waitUntil: 'networkidle' });
+      const t = await page.evaluate(() => document.documentElement.dataset.theme);
+      const fg = await page.evaluate(() => getComputedStyle(document.body).color);
+      check(t === theme, `${route} no tema ${theme} (texto ${fg})`);
+      await page.screenshot({ path: path.join(OUT, `12-${theme}-${name}.png`), fullPage: true });
+    }
+    // Ficha do funcionário aberta (painéis, botões e console)
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForSelector('canvas');
+    await sleep(2500);
+    await page.getByRole('button', { name: /Thiago Almeida/ }).first().click();
+    await sleep(600);
+    await page.getByRole('button', { name: /Console de eventos/ }).click();
+    await sleep(500);
+    await page.screenshot({ path: path.join(OUT, `13-${theme}-ficha.png`) });
+  }
+
+  // 4) Mobile nos dois temas
+  for (const theme of ['light', 'dark']) {
+    const m = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    await m.addInitScript(([k, t]) => localStorage.setItem(k, t), [STORAGE, theme]);
+    const mp = await m.newPage();
+    await mp.goto(BASE, { waitUntil: 'networkidle' });
+    await mp.waitForSelector('canvas');
+    await sleep(2500);
+    const overflow = await mp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    check(!overflow, `mobile (${theme}) sem rolagem horizontal`);
+    await mp.screenshot({ path: path.join(OUT, `14-${theme}-mobile.png`) });
+    await m.close();
+  }
+
+  // 5) prefers-reduced-motion: troca instantânea, sem classe de transição
+  const rm = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
+  const rp = await rm.newPage();
+  await rp.goto(BASE, { waitUntil: 'networkidle' });
+  await rp.waitForSelector('canvas');
+  const before = await rp.evaluate(() => document.documentElement.dataset.theme);
+  await rp.getByTestId('theme-toggle').first().click();
+  const state = await rp.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    transition: document.documentElement.classList.contains('theme-transition'),
+    anim: getComputedStyle(document.querySelector('.anim-panel-in')).animationDuration,
+  }));
+  check(state.theme !== before && !state.transition, 'movimento reduzido: tema troca sem animação');
+  check(parseFloat(state.anim) < 0.01, `movimento reduzido: animações desativadas (${state.anim})`);
+  await rm.close();
+  await ctx.close();
 }
 
 main()

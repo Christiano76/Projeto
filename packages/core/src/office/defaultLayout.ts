@@ -20,12 +20,12 @@ const EAST = PI / 2; // olhando para +x
 const WEST = -PI / 2; // olhando para -x
 
 const rooms: RoomDef[] = [
-  room('diretor', 'Sala do Diretor', 'director', 'direcao', [0, 0, 7, 7], [{ side: 's', offset: 2.5, width: 1.5 }], '#d9c7a7', 1),
-  room('gerente', 'Sala do Gerente', 'manager', 'gerencia', [7, 0, 6, 7], [{ side: 's', offset: 2, width: 1.5 }], '#d6d0c4', 2),
-  room('financeiro', 'Financeiro', 'department', 'financeiro', [13, 0, 6, 7], [{ side: 's', offset: 2.5, width: 1.5 }], '#cfdccf', 3),
-  room('reunioes', 'Sala de Reuniões', 'meeting', null, [19, 0, 7, 7], [{ side: 's', offset: 1, width: 1.5 }], '#c9d3e0', 4),
-  room('descanso', 'Área de Descanso', 'lounge', null, [26, 0, 7, 7], [{ side: 's', offset: 1, width: 1.5 }], '#e6d5b8', 5),
-  room('corredor', 'Corredor', 'corridor', null, [0, 7, 33, 2.5], [], '#e4e1da', 0),
+  room('diretor', 'Sala do Diretor', 'director', 'direcao', [0, 0, 7, 7], [{ side: 's', offset: 2.5, width: 1.5 }], '#d5dde7', 1),
+  room('gerente', 'Sala do Gerente', 'manager', 'gerencia', [7, 0, 6, 7], [{ side: 's', offset: 2, width: 1.5 }], '#dde3ea', 2),
+  room('financeiro', 'Financeiro', 'department', 'financeiro', [13, 0, 6, 7], [{ side: 's', offset: 2.5, width: 1.5 }], '#d3e2e6', 3),
+  room('reunioes', 'Sala de Reuniões', 'meeting', null, [19, 0, 7, 7], [{ side: 's', offset: 1, width: 1.5 }], '#cdd9e8', 4),
+  room('descanso', 'Área de Descanso', 'lounge', null, [26, 0, 7, 7], [{ side: 's', offset: 1, width: 1.5 }], '#d8e4ee', 5),
+  room('corredor', 'Corredor', 'corridor', null, [0, 7, 33, 2.5], [], '#e6ebf1', 0),
   room(
     'recepcao',
     'Recepção',
@@ -36,12 +36,12 @@ const rooms: RoomDef[] = [
       { side: 'n', offset: 5, width: 1.5 },
       { side: 's', offset: 3, width: 2, exterior: true },
     ],
-    '#e8dcc8',
+    '#e3e9f0',
     6,
   ),
-  room('prospeccao', 'Prospecção', 'department', 'prospeccao', [8, 9.5, 6, 8.5], [{ side: 'n', offset: 2, width: 1.5 }], '#d3dde8', 7),
-  room('comercial', 'Comercial', 'department', 'comercial', [14, 9.5, 8, 8.5], [{ side: 'n', offset: 3, width: 1.5 }], '#e3d6e6', 8),
-  room('desenvolvimento', 'Desenvolvimento', 'department', 'desenvolvimento', [22, 9.5, 11, 8.5], [{ side: 'n', offset: 4.5, width: 1.5 }], '#d2e3df', 9),
+  room('prospeccao', 'Prospecção', 'department', 'prospeccao', [8, 9.5, 6, 8.5], [{ side: 'n', offset: 2, width: 1.5 }], '#d2dfeb', 7),
+  room('comercial', 'Comercial', 'department', 'comercial', [14, 9.5, 8, 8.5], [{ side: 'n', offset: 3, width: 1.5 }], '#d9dfea', 8),
+  room('desenvolvimento', 'Desenvolvimento', 'department', 'desenvolvimento', [22, 9.5, 11, 8.5], [{ side: 'n', offset: 4.5, width: 1.5 }], '#cfe0e6', 9),
 ];
 
 const objects: ObjectDef[] = [];
@@ -89,7 +89,7 @@ function workstation(roomKey: string, key: string, x: number, z: number, facing:
 // ── Sala do Diretor ───────────────────────────────────────────────
 export const DIRECTOR_SEAT = workstation('diretor', 'ws', 3.5, 2.8, SOUTH, true);
 add('diretor', 'shelf', 'bookshelf', 3.5, 0.6, SOUTH);
-add('diretor', 'rug', 'rug', 3.5, 4.9, 0, { color: '#8c5e3c' });
+add('diretor', 'rug', 'rug', 3.5, 4.9, 0, { color: '#2f4560' });
 add('diretor', 'guest1', 'armchair', 2.4, 5.4, NORTH, { seatKind: 'guest' });
 add('diretor', 'guest2', 'armchair', 4.6, 5.4, NORTH, { seatKind: 'guest' });
 add('diretor', 'plant1', 'plant', 0.7, 0.7);
@@ -123,7 +123,7 @@ add('reunioes', 'plant1', 'plant', 19.7, 0.7);
 add('reunioes', 'plant2', 'plant', 25.3, 6.3);
 
 // ── Área de Descanso ──────────────────────────────────────────────
-add('descanso', 'rug', 'rug', 29.5, 2.9, 0, { color: '#b5838d' });
+add('descanso', 'rug', 'rug', 29.5, 2.9, 0, { color: '#3d5a7a' });
 add('descanso', 'sofa', 'sofa', 29.5, 1.0, SOUTH);
 add('descanso', 'table', 'coffee_table', 29.5, 2.6, 0);
 add('descanso', 'arm1', 'armchair', 27.4, 3.0, EAST);
@@ -144,7 +144,7 @@ add('recepcao', 'bench1', 'waiting_bench', 0.6, 14.8, EAST);
 add('recepcao', 'plant1', 'plant', 0.7, 17.3);
 add('recepcao', 'plant2', 'plant', 7.3, 17.3);
 add('recepcao', 'plant3', 'plant', 7.3, 10.2);
-add('recepcao', 'rug', 'rug', 4, 16.3, 0, { color: '#6d6875' });
+add('recepcao', 'rug', 'rug', 4, 16.3, 0, { color: '#33475f' });
 
 // ── Prospecção ────────────────────────────────────────────────────
 export const PROSPECTOR_SEAT = workstation('prospeccao', 'ws1', 11, 13.6, SOUTH);

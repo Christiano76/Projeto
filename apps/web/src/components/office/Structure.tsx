@@ -4,7 +4,10 @@ import { buildWallSegments, type OfficeLayout, type RoomDef } from '@agency/core
 import type { ThreeEvent } from '@react-three/fiber';
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { getMaterial } from './geometry';
+import { SCENE_PALETTES, darkFloorColor, getThemedMaterial } from './sceneTheme';
+
+const L = SCENE_PALETTES.light;
+const D = SCENE_PALETTES.dark;
 
 const WALL_THICKNESS = 0.15;
 export const WALL_HEIGHTS = { low: 0.9, high: 2.6 } as const;
@@ -23,13 +26,22 @@ export function Floors({
   return (
     <group>
       {/* Base externa (calçada) */}
-      <mesh position={[layout.width / 2, -0.12, layout.depth / 2]} receiveShadow geometry={unitBox} scale={[layout.width + 6, 0.2, layout.depth + 6]}>
-        <meshStandardMaterial color="#cbd5c0" flatShading />
-      </mesh>
+      <mesh
+        position={[layout.width / 2, -0.12, layout.depth / 2]}
+        receiveShadow
+        geometry={unitBox}
+        scale={[layout.width + 6, 0.2, layout.depth + 6]}
+        material={getThemedMaterial(L.ground, D.ground)}
+      />
       {/* Laje do prédio */}
-      <mesh position={[layout.width / 2, -0.06, layout.depth / 2]} geometry={unitBox} scale={[layout.width + 0.3, 0.12, layout.depth + 0.3]}>
-        <meshStandardMaterial color="#94a3b8" flatShading />
-      </mesh>
+      <mesh
+        position={[layout.width / 2, -0.06, layout.depth / 2]}
+        geometry={unitBox}
+        scale={[layout.width + 0.3, 0.12, layout.depth + 0.3]}
+        material={getThemedMaterial(L.slab, D.slab)}
+      />
+      {/* Contorno luminoso do prédio (discreto de dia, ciano à noite) */}
+      <BuildingOutline width={layout.width} depth={layout.depth} />
       {layout.rooms.map((room) => (
         <mesh
           key={room.key}
@@ -37,7 +49,7 @@ export function Floors({
           position={[room.bounds.x + room.bounds.w / 2, -0.005, room.bounds.z + room.bounds.d / 2]}
           scale={[room.bounds.w, 0.01, room.bounds.d]}
           receiveShadow
-          material={getMaterial(room.floorColor)}
+          material={getThemedMaterial(room.floorColor, darkFloorColor(room.floorColor))}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             if (e.delta > 4) return; // foi um arrasto da câmera
             e.stopPropagation();
@@ -60,8 +72,8 @@ export function Walls({ layout, height, shadows }: { layout: OfficeLayout; heigh
   const exterior = segments.filter((s) => s.exterior);
   return (
     <group>
-      <WallSet segments={interior} height={height} color="#f1ede4" shadows={shadows} />
-      <WallSet segments={exterior} height={height} color="#d6cfc2" shadows={shadows} />
+      <WallSet segments={interior} height={height} material={getThemedMaterial(L.wallInterior, D.wallInterior)} shadows={shadows} />
+      <WallSet segments={exterior} height={height} material={getThemedMaterial(L.wallExterior, D.wallExterior)} shadows={shadows} />
     </group>
   );
 }
@@ -69,12 +81,12 @@ export function Walls({ layout, height, shadows }: { layout: OfficeLayout; heigh
 function WallSet({
   segments,
   height,
-  color,
+  material,
   shadows,
 }: {
   segments: ReturnType<typeof buildWallSegments>;
   height: number;
-  color: string;
+  material: THREE.Material;
   shadows: boolean;
 }) {
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -105,8 +117,28 @@ function WallSet({
   if (segments.length === 0) return null;
   return (
     <group>
-      <instancedMesh ref={ref} args={[geometry, getMaterial(color), segments.length]} castShadow={shadows} receiveShadow />
-      <instancedMesh ref={capRef} args={[geometry, getMaterial('#475569'), segments.length]} />
+      <instancedMesh ref={ref} args={[geometry, material, segments.length]} castShadow={shadows} receiveShadow />
+      <instancedMesh ref={capRef} args={[geometry, getThemedMaterial(L.wallCap, D.wallCap, { unlit: true }), segments.length]} />
+    </group>
+  );
+}
+
+function BuildingOutline({ width, depth }: { width: number; depth: number }) {
+  const geometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
+  const material = getThemedMaterial('#b4c3d4', '#1d6bf3', { unlit: true });
+  const t = 0.06;
+  const pad = 0.15 + t / 2;
+  const strips: [number, number, number, number][] = [
+    [width / 2, -pad, width + 2 * pad + t, t],
+    [width / 2, depth + pad, width + 2 * pad + t, t],
+    [-pad, depth / 2, t, depth + 2 * pad],
+    [width + pad, depth / 2, t, depth + 2 * pad],
+  ];
+  return (
+    <group>
+      {strips.map(([x, z, w, d], i) => (
+        <mesh key={i} geometry={geometry} material={material} position={[x, 0.005, z]} scale={[w, 0.012, d]} />
+      ))}
     </group>
   );
 }

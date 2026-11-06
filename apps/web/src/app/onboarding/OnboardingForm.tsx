@@ -28,14 +28,14 @@ export function OnboardingForm() {
   };
 
   return (
-    <form onSubmit={submit} className="glass w-full max-w-md space-y-4 rounded-2xl p-6">
+    <form onSubmit={submit} className="glass anim-panel-in w-full max-w-md space-y-4 rounded-2xl p-6">
       <h1 className="text-lg font-bold">Crie sua agência</h1>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-muted">
         Você será o diretor. Criaremos o escritório com 9 ambientes e a equipe inicial (gerente, prospector, comercial,
         desenvolvimento e financeiro). Os agentes de IA começam desligados até você configurá-los.
       </p>
       <input
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+        className="input py-2"
         placeholder="Nome da agência"
         minLength={2}
         maxLength={120}
@@ -43,8 +43,8 @@ export function OnboardingForm() {
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
-      {error && <p className="text-sm text-rose-700">{error}</p>}
-      <button disabled={busy} className="w-full rounded-lg bg-brand-600 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <button disabled={busy} className="btn btn-primary w-full py-2 text-sm">
         {busy ? 'Criando…' : 'Criar empresa'}
       </button>
     </form>

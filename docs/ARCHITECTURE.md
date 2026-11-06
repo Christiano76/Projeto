@@ -169,3 +169,11 @@ Os modelos atuais são procedurais (peças em `components/office/models.ts`), o 
 | Divergência visual × backend | Estado só muda por eventos validados; cliente deriva, não inventa; ressincronização ao reconectar |
 | Desempenho em celulares | Instanciamento, qualidade adaptativa, sem texturas |
 | Dependências externas | Supabase (Auth, Postgres, Realtime), Anthropic/OpenAI; o modo local permite desenvolver sem nenhuma delas |
+
+## 12. Temas e identidade visual
+
+- **Tokens de interface** (`apps/web/src/app/globals.css`): variáveis CSS semânticas (`--bg`, `--surface*`, `--fg*`, `--line*`, `--accent*`, `--glass-*`, estados) redefinidas por `:root[data-theme='light'|'dark']` e expostas ao Tailwind (`bg-surface`, `text-muted`, `border-line`, `bg-accent`…). Para mudar a identidade visual, altere só esses valores.
+- **Tokens do 3D** (`components/office/sceneTheme.ts`): paleta diurna/noturna (fundo, céu, sol, ambiente, piso, paredes, filetes luminosos). Materiais temáticos (`getThemedMaterial`) são compartilhados e interpolados pelo `ThemeAnimator`, que também ajusta as luzes de forma gradual (~1,2 s).
+- **Sem flash**: `THEME_BOOT_SCRIPT` roda no `<head>` antes da pintura e define `data-theme` a partir da preferência salva (`localStorage['agency-os:theme']`) ou de `prefers-color-scheme`.
+- **Troca animada**: a classe temporária `theme-transition` anima cores da interface; o 3D interpola luz e materiais.
+- **Movimento**: tokens de duração/curva (`--dur*`, `--ease-*`); utilitários `btn`, `row-interactive`, `anim-panel-in/out`, `collapsible`, `status-dot[data-live]`, `anim-pop`, `bar-fill`. Com `prefers-reduced-motion`, animações CSS, troca de tema, pulso dos anéis 3D e transições de câmera tornam-se instantâneos.

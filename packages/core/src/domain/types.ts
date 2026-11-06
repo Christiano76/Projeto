@@ -50,13 +50,13 @@ export const STATUS_LABELS: Record<EmployeeStatus, string> = {
 };
 
 export const STATUS_COLORS: Record<EmployeeStatus, string> = {
-  offline: '#94a3b8',
+  offline: '#64748b',
   idle: '#38bdf8',
-  working: '#22c55e',
-  meeting: '#a855f7',
-  resting: '#f59e0b',
-  blocked: '#f97316',
-  error: '#ef4444',
+  working: '#22d3a5',
+  meeting: '#818cf8',
+  resting: '#2dd4bf',
+  blocked: '#f59e0b',
+  error: '#f43f5e',
 };
 
 export interface TaskRef {
