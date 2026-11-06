@@ -3,12 +3,15 @@
 import { EVENT_LABELS, type AgentEventType, type Employee, type LiveUpdate } from '@agency/core';
 import { useMemo, useState } from 'react';
 
-type Field = 'taskId' | 'title' | 'note' | 'summary' | 'error' | 'reason' | 'meetingId' | 'topic' | 'toEmployeeId' | 'subject';
+type Field = 'taskId' | 'title' | 'dueAt' | 'note' | 'summary' | 'error' | 'reason' | 'meetingId' | 'topic' | 'toEmployeeId' | 'subject';
 
-const FIELDS: Record<AgentEventType, Field[]> = {
+/** Eventos que o diretor pode registrar manualmente (a supervisão é exclusiva do servidor). */
+type ManualEventType = Exclude<AgentEventType, 'supervision.visit_started' | 'supervision.visit_ended' | 'supervision.inspected'>;
+
+const FIELDS: Record<ManualEventType, Field[]> = {
   'employee.online': [],
   'employee.offline': [],
-  'task.started': ['taskId', 'title'],
+  'task.started': ['taskId', 'title', 'dueAt'],
   'task.progress': ['taskId', 'note'],
   'task.completed': ['taskId', 'summary'],
   'task.failed': ['taskId', 'error'],
@@ -24,6 +27,7 @@ const FIELDS: Record<AgentEventType, Field[]> = {
 const FIELD_LABELS: Record<Field, string> = {
   taskId: 'ID da tarefa',
   title: 'Título da tarefa',
+  dueAt: 'Prazo (opcional)',
   note: 'Nota de progresso',
   summary: 'Resumo (opcional)',
   error: 'Erro',
@@ -51,7 +55,7 @@ export function EventConsole({
   compact?: boolean;
 }) {
   const [employeeId, setEmployeeId] = useState(defaultEmployeeId ?? employees[0]?.id ?? '');
-  const [type, setType] = useState<AgentEventType>('task.started');
+  const [type, setType] = useState<ManualEventType>('task.started');
   const [values, setValues] = useState<Partial<Record<Field, string>>>({});
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -78,7 +82,7 @@ export function EventConsole({
     const payload: Record<string, string> = {};
     for (const f of fields) {
       const v = (values[f] ?? '').trim() || (f === 'taskId' || f === 'meetingId' ? (placeholder[f] ?? '') : '');
-      if (v) payload[f] = v;
+      if (v) payload[f] = f === 'dueAt' ? new Date(v).toISOString() : v;
     }
     try {
       const res = await fetch('/api/events', {
@@ -119,8 +123,8 @@ export function EventConsole({
       )}
       <label className="block">
         <span className="text-xs font-medium text-muted">Evento</span>
-        <select className={input} value={type} onChange={(e) => setType(e.target.value as AgentEventType)}>
-          {(Object.keys(FIELDS) as AgentEventType[]).map((t) => (
+        <select className={input} value={type} onChange={(e) => setType(e.target.value as ManualEventType)}>
+          {(Object.keys(FIELDS) as ManualEventType[]).map((t) => (
             <option key={t} value={t}>
               {EVENT_LABELS[t]} ({t})
             </option>
@@ -131,7 +135,9 @@ export function EventConsole({
         {fields.map((f) => (
           <label key={f} className="block">
             <span className="text-xs font-medium text-muted">{FIELD_LABELS[f]}</span>
-            {f === 'toEmployeeId' ? (
+            {f === 'dueAt' ? (
+              <input type="datetime-local" className={input} value={values[f] ?? ''} onChange={(e) => setValues({ ...values, [f]: e.target.value })} />
+            ) : f === 'toEmployeeId' ? (
               <select className={input} value={values[f] ?? ''} onChange={(e) => setValues({ ...values, [f]: e.target.value })}>
                 <option value="">Selecione…</option>
                 {employees

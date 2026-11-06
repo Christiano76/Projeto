@@ -12,13 +12,13 @@ describe('máquina de estados do funcionário', () => {
     const s1 = start(idle());
     expect(s1.applied).toBe(true);
     expect(s1.state.status).toBe('working');
-    expect(s1.state.currentTask).toEqual({ id: 't1', title: 'Landing page' });
+    expect(s1.state.currentTask).toEqual({ id: 't1', title: 'Landing page', dueAt: null });
     expect(s1.state.statusSince).toBe(T(1));
 
     const s2 = applyEvent(s1.state, ev({ employeeId: E, type: 'task.completed', payload: { taskId: 't1' } }, T(5)));
     expect(s2.applied).toBe(true);
     expect(s2.state).toMatchObject({ status: 'idle', currentTask: null, tasksCompleted: 1, version: 2 });
-    expect(s2.state.lastCompletedTask).toEqual({ id: 't1', title: 'Landing page', at: T(5) });
+    expect(s2.state.lastCompletedTask).toEqual({ id: 't1', title: 'Landing page', dueAt: null, at: T(5) });
   });
 
   it('não permite iniciar uma segunda tarefa simultânea', () => {

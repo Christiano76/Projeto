@@ -24,6 +24,8 @@ interface OfficeState {
   applyUpdate(update: LiveUpdate): void;
   select(employeeId: string | null): void;
   focusRoom(roomKey: string | null): void;
+  /** Limpa o foco sem pedir reenquadramento (a câmera já está indo para outro lugar). */
+  clearFocus(): void;
   setWallMode(mode: WallMode): void;
   toggleLabels(): void;
   setConnection(state: ConnectionState): void;
@@ -69,6 +71,7 @@ export const useOfficeStore = create<OfficeState>((set) => ({
 
   select: (employeeId) => set({ selectedEmployeeId: employeeId }),
   focusRoom: (roomKey) => set((s) => ({ focusRoomKey: roomKey, focusNonce: s.focusNonce + 1 })),
+  clearFocus: () => set({ focusRoomKey: null }),
   setWallMode: (wallMode) => set({ wallMode }),
   toggleLabels: () => set((s) => ({ showLabels: !s.showLabels })),
   setConnection: (connection) => set({ connection }),

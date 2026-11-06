@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const { chromium } = require('playwright');
+const { chromium, devices } = require('playwright');
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.E2E_PORT ?? 3100);
@@ -154,12 +154,356 @@ async function main() {
   check(await page.getByText('Tarefas concluídas', { exact: true }).isVisible(), 'painel administrativo carrega');
   await page.screenshot({ path: path.join(OUT, '06-admin.png'), fullPage: true });
 
+  await officeLifeChecks(browser, errors);
+  await cameraChecks(browser, errors);
+  await androidChecks(browser, errors);
   await themeChecks(browser, errors);
 
   const relevantErrors = errors.filter((e) => !/GPU stall|WebGL|swiftshader|ReadPixels/i.test(e));
   check(relevantErrors.length === 0, `sem erros no console${relevantErrors.length ? ': ' + relevantErrors.join(' | ') : ''}`);
 
   await browser.close();
+}
+
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
+async function openOffice(browser, errors, opts = {}) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, ...opts });
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.waitForSelector('canvas');
+  await page.waitForFunction(() => window.__agencyOS?.agents && window.__agencyOS?.camera && window.__agencyOS.camera());
+  await sleep(1500);
+  return page;
+}
+
+const agentsOf = (page) => page.evaluate(() => window.__agencyOS.agents());
+const cameraOf = (page) => page.evaluate(() => window.__agencyOS.camera());
+const post = (employeeId, type, payload = {}) =>
+  fetch(`${BASE}/api/events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ employeeId, type, payload }) });
+
+/** Movimento autônomo, chegada às mesas, colisões, obstáculos e inspeções do gerente. */
+async function officeLifeChecks(browser, errors) {
+  console.log('\n— Escritório vivo —');
+  const page = await openOffice(browser, errors);
+  const snap = await (await fetch(`${BASE}/api/office`)).json();
+  const byKey = Object.fromEntries(snap.employees.map((e) => [e.key, e]));
+  // Estado deixado pelo roteiro anterior: encerra reunião, pausa e ausência.
+  await post(byKey.gerente.id, 'meeting.left', { meetingId: 'm1' });
+  await post(byKey.analista_comercial.id, 'meeting.left', { meetingId: 'm1' });
+  await post(byKey.analista_financeiro.id, 'break.ended');
+  await post(byKey.qa.id, 'employee.online');
+
+  // 1) Amostragem do movimento por 24 s
+  const samples = [];
+  const times = [];
+  for (let i = 0; i < 96; i++) {
+    samples.push(await agentsOf(page));
+    times.push(Date.now());
+    await sleep(250);
+  }
+  let walkingSeen = 0;
+  let minSep = Infinity;
+  let maxJump = 0;
+  let offGrid = [];
+  for (let i = 0; i < samples.length; i++) {
+    const vis = samples[i].filter((a) => a.phase !== 'hidden' && a.phase !== 'entering');
+    walkingSeen += vis.filter((a) => a.phase === 'walking').length;
+    for (let x = 0; x < vis.length; x++) for (let y = x + 1; y < vis.length; y++) minSep = Math.min(minSep, dist(vis[x].pos, vis[y].pos));
+    for (const a of vis) {
+      const nearSeat = (a.goalPos && dist(a.goalPos, a.pos) < 0.9) || (a.seatPos && dist(a.seatPos, a.pos) < 0.9);
+      if (!a.walkable && a.phase === 'walking' && !nearSeat) offGrid.push(`${a.id.slice(0, 4)}@${a.pos.map((v) => v.toFixed(1))}`);
+      const prev = i > 0 && samples[i - 1].find((p) => p.id === a.id);
+      if (prev && prev.phase !== 'hidden' && prev.phase !== 'entering') {
+        const dtSim = a.simTime - prev.simTime;
+        if (dtSim > 0) maxJump = Math.max(maxJump, dist(prev.pos, a.pos) / dtSim);
+      }
+    }
+  }
+  const moved = samples.at(-1).filter((a) => a.distance > 1).length;
+  check(walkingSeen > 0 && moved >= 1, `funcionários caminham pelo escritório (${moved} se deslocaram)`);
+  check(minSep > 0.4, `ninguém atravessa ninguém (menor distância ${minSep.toFixed(2)} m)`);
+  check(offGrid.length === 0, `ninguém atravessa móveis/paredes${offGrid.length ? ': ' + offGrid.slice(0, 5).join(' ') : ''}`);
+  check(maxJump < 3.0, `sem teletransporte (maior velocidade observada: ${maxJump.toFixed(2)} m/s)`);
+
+  // 1b) Mensagem interna real => remetente vai até o colega e conversa
+  const sender = byKey.vendedor;
+  const receiver = byKey.prospector;
+  const msg = await post(sender.id, 'message.sent', { toEmployeeId: receiver.id, subject: 'Lead do site da padaria' });
+  check(msg.status === 201, 'mensagem interna registrada');
+  let visiting = null;
+  for (let i = 0; i < 50 && !visiting; i++) {
+    const list = await agentsOf(page);
+    const a = list.find((x) => x.id === sender.id);
+    if (a.goalKey?.startsWith(`visit:${receiver.id}`) && a.phase === 'standing') visiting = { a, r: list.find((x) => x.id === receiver.id) };
+    else await sleep(300);
+  }
+  check(!!visiting, 'remetente caminha até o colega para conversar');
+  if (visiting) {
+    check(dist(visiting.a.pos, visiting.r.pos) < 2.2 && visiting.a.pose === 'stand_talk', `animação de conversa ao lado do colega (${dist(visiting.a.pos, visiting.r.pos).toFixed(2)} m)`);
+  }
+
+  // 2) Trabalho real => volta à própria mesa e senta digitando
+  const dev = byKey.dev_backend;
+  const r = await post(dev.id, 'task.started', { taskId: 'api-1', title: 'API de pedidos' });
+  check(r.status === 201, 'dev backend recebe tarefa real');
+  let seated = null;
+  for (let i = 0; i < 90 && !seated; i++) {
+    const a = (await agentsOf(page)).find((x) => x.id === dev.id);
+    if (a.phase === 'seated' && a.goalKey === `seat:${dev.deskSeatKey}`) seated = a;
+    else await sleep(500);
+  }
+  check(!!seated, 'funcionário caminha até a própria mesa e senta');
+  await sleep(800);
+  const typing = (await agentsOf(page)).find((x) => x.id === dev.id);
+  check(typing.pose === 'sit_typing', `animação de trabalho só com tarefa real (pose: ${typing.pose})`);
+
+  // 3) Falha real => gerente prioriza, caminha, inspeciona e registra o estado consultado
+  const fin = byKey.analista_financeiro;
+  const failedAt = Date.now() - 500;
+  await post(fin.id, 'task.started', { taskId: 'fin-1', title: 'Conciliação bancária' });
+  await post(fin.id, 'task.failed', { taskId: 'fin-1', error: 'extrato indisponível' });
+  const manager = byKey.gerente;
+  let inspected = null;
+  let visit = null;
+  let managerWalked = 0;
+  for (let i = 0; i < 120 && !inspected; i++) {
+    const evs = (await (await fetch(`${BASE}/api/events?employeeId=${manager.id}&limit=50`)).json()).events;
+    const after = evs.filter((e) => Date.parse(e.createdAt) >= failedAt);
+    visit = visit ?? after.find((e) => e.type === 'supervision.visit_started' && e.payload.targetEmployeeId === fin.id);
+    inspected = after.find((e) => e.type === 'supervision.inspected' && e.payload.targetEmployeeId === fin.id);
+    const m = (await agentsOf(page)).find((x) => x.id === manager.id);
+    managerWalked = m.distance;
+    if (!inspected) await sleep(500);
+  }
+  check(!!visit, 'gerente inicia visita ao funcionário com falha (prioridade)');
+  check(!!inspected, 'gerente conclui a inspeção');
+  if (inspected) {
+    check(inspected.payload.observedStatus === 'error' && inspected.payload.findings.includes('error'), 'inspeção registra o estado REAL consultado (erro)');
+    check(Date.parse(inspected.createdAt) - Date.parse(visit.createdAt) >= 4000, 'inspeção só após caminhar e observar (≥ 4 s)');
+    check(managerWalked > 1, `gerente caminhou de fato (${managerWalked.toFixed(1)} m)`);
+    check(inspected.source === 'system', 'inspeção registrada pelo servidor (origem system)');
+  }
+  const forged = await post(manager.id, 'supervision.inspected', { targetEmployeeId: fin.id, observedStatus: 'idle', findings: ['ok'], statusMinutes: 0 });
+  check(forged.status === 403, 'inspeção falsa pelo console é recusada (403)');
+
+  // 4) Ficha do gerente com supervisão
+  await page.getByRole('button', { name: /Helena Prado/ }).first().click();
+  await page.waitForSelector('[data-testid="supervision-section"]');
+  await sleep(1200);
+  const supText = await page.locator('[data-testid="supervision-section"]').innerText();
+  check(/Analista Financeiro|Eduardo/.test(supText) && /Falha na última tarefa/.test(supText), 'ficha do gerente mostra inspecionados e problemas identificados');
+  check(await page.locator('[data-testid="agent-activity"]').isVisible(), 'ficha mostra a atividade atual');
+  await page.screenshot({ path: path.join(OUT, '20-gerente-supervisao.png') });
+
+  // 5) Acompanhar com a câmera
+  await page.getByTestId('follow-toggle').click();
+  await sleep(2500);
+  const m = (await agentsOf(page)).find((x) => x.id === manager.id);
+  const cam = await cameraOf(page);
+  check(dist([cam.target[0], cam.target[2]], m.pos) < 1.5, 'câmera acompanha o personagem selecionado');
+  await page.getByTestId('follow-toggle').click();
+  await page.close();
+}
+
+/** Câmera livre: aba retrátil, botões, mouse, roda, teclado, limites e redimensionamento. */
+async function cameraChecks(browser, errors) {
+  console.log('\n— Câmera —');
+  const page = await openOffice(browser, errors);
+  const c0 = await cameraOf(page);
+  const panelHidden = () => page.locator('#camera-dock-panel').getAttribute('aria-hidden');
+  check((await panelHidden()) === 'true', 'aba de câmera começa recolhida');
+  await page.getByTestId('camera-dock-toggle').click();
+  await sleep(600);
+  check((await panelHidden()) === 'false', 'aba expande ao clicar');
+  await page
+    .waitForFunction(() => Number(getComputedStyle(document.querySelector('#camera-dock-panel')).opacity) > 0.95, null, { timeout: 5000 })
+    .catch(() => {});
+  const panelOpacity = await page.evaluate(() => getComputedStyle(document.querySelector('#camera-dock-panel')).opacity);
+  check(Number(panelOpacity) > 0.95, `controles aparecem (animação concluída, opacidade ${panelOpacity})`);
+  await page.screenshot({ path: path.join(OUT, '21-aba-camera.png') });
+
+  // Espera a câmera parar (o Chromium de teste renderiza por CPU, a poucos quadros/s).
+  const settle = async () => {
+    await sleep(1200);
+    let last = await cameraOf(page);
+    let still = 0;
+    for (let i = 0; i < 25 && still < 2; i++) {
+      await sleep(400);
+      const c = await cameraOf(page);
+      const moved = Math.abs(c.azimuth - last.azimuth) + Math.abs(c.polar - last.polar) + Math.abs(c.distance - last.distance) + dist([c.target[0], c.target[2]], [last.target[0], last.target[2]]);
+      still = moved < 1e-3 ? still + 1 : 0;
+      last = c;
+    }
+    return last;
+  };
+  const click = async (label) => {
+    await page.getByRole('button', { name: label, exact: true }).click();
+    await sleep(200);
+    return settle();
+  };
+  let c = await click('Girar à direita');
+  check(Math.abs(c.azimuth - c0.azimuth) > 0.3, `botão girar altera o ângulo (${c0.azimuth.toFixed(2)} → ${c.azimuth.toFixed(2)})`);
+  let prev = c;
+  c = await click('Aproximar');
+  check(c.distance < prev.distance - 1, `botão aproximar (${prev.distance.toFixed(1)} → ${c.distance.toFixed(1)})`);
+  prev = c;
+  c = await click('Afastar');
+  check(c.distance > prev.distance + 1, 'botão afastar');
+  prev = c;
+  c = await click('Inclinar para cima (mais de cima)');
+  check(c.polar < prev.polar - 0.05, 'botão inclinar');
+  prev = c;
+  c = await click('Mover para a direita');
+  check(dist([c.target[0], c.target[2]], [prev.target[0], prev.target[2]]) > 1, 'botão mover desloca a câmera');
+
+  // Pressionar e segurar = movimento contínuo
+  const btn = page.getByRole('button', { name: 'Girar à esquerda', exact: true });
+  const box = await btn.boundingBox();
+  prev = await cameraOf(page);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await sleep(1500);
+  await page.mouse.up();
+  await sleep(400);
+  c = await cameraOf(page);
+  check(Math.abs(c.azimuth - prev.azimuth) > 0.6, `segurar o botão gira continuamente (${(c.azimuth - prev.azimuth).toFixed(2)} rad)`);
+
+  c = await click('Redefinir câmera');
+  await sleep(600);
+  c = await cameraOf(page);
+  const azErr = Math.abs(Math.atan2(Math.sin(c.azimuth - Math.PI / 4), Math.cos(c.azimuth - Math.PI / 4)));
+  check(azErr < 0.05 && Math.abs(c.polar - Math.atan(Math.SQRT2)) < 0.03, `redefinir volta à vista isométrica inicial (az ${c.azimuth.toFixed(2)}, polar ${c.polar.toFixed(2)})`);
+
+  // Mouse: arrastar = girar; botão direito = deslocar; roda = zoom
+  const canvas = await page.locator('canvas').boundingBox();
+  const cx = canvas.x + canvas.width * 0.6;
+  const cy = canvas.y + canvas.height * 0.5;
+  prev = await cameraOf(page);
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  for (let i = 1; i <= 15; i++) await page.mouse.move(cx + i * 14, cy + i * 3);
+  await page.mouse.up();
+  await sleep(800);
+  c = await cameraOf(page);
+  check(Math.abs(c.azimuth - prev.azimuth) > 0.2, 'arrastar com o mouse gira a câmera (360°)');
+  prev = c;
+  await page.mouse.move(cx, cy);
+  await page.mouse.down({ button: 'right' });
+  for (let i = 1; i <= 15; i++) await page.mouse.move(cx - i * 12, cy - i * 6);
+  await page.mouse.up({ button: 'right' });
+  await sleep(800);
+  c = await cameraOf(page);
+  check(dist([c.target[0], c.target[2]], [prev.target[0], prev.target[2]]) > 1, 'botão direito desloca lateralmente');
+  prev = c;
+  await page.mouse.move(cx, cy);
+  for (let i = 0; i < 5; i++) {
+    await page.mouse.wheel(0, -200);
+    await sleep(60);
+  }
+  await sleep(800);
+  c = await cameraOf(page);
+  check(c.distance < prev.distance - 2, `roda do mouse aproxima (${prev.distance.toFixed(1)} → ${c.distance.toFixed(1)})`);
+
+  // Teclado
+  prev = c;
+  await page.mouse.click(canvas.x + canvas.width * 0.75, canvas.y + 40); // foca a cena, fora dos painéis
+  await page.keyboard.down('KeyW');
+  await sleep(700);
+  await page.keyboard.up('KeyW');
+  await page.keyboard.down('KeyQ');
+  await sleep(600);
+  await page.keyboard.up('KeyQ');
+  await sleep(500);
+  c = await cameraOf(page);
+  check(dist([c.target[0], c.target[2]], [prev.target[0], prev.target[2]]) > 1 && Math.abs(c.azimuth - prev.azimuth) > 0.3, `teclado (W/Q) move e gira a câmera (alvo ${dist([c.target[0], c.target[2]], [prev.target[0], prev.target[2]]).toFixed(2)} m, giro ${(c.azimuth - prev.azimuth).toFixed(2)})`);
+
+  // Limites: inclinar ao máximo nunca atravessa o chão
+  const tiltDown = page.getByRole('button', { name: 'Inclinar para baixo (mais lateral)', exact: true });
+  const tb = await tiltDown.boundingBox();
+  await page.mouse.move(tb.x + tb.width / 2, tb.y + tb.height / 2);
+  await page.mouse.down();
+  await sleep(3000);
+  await page.mouse.up();
+  for (let i = 0; i < 12; i++) await page.mouse.wheel(0, 400);
+  await sleep(900);
+  c = await cameraOf(page);
+  check(c.polar <= 1.37 && c.position[1] > 0.3, `limite de inclinação: câmera acima do chão (polar ${c.polar.toFixed(2)}, altura ${c.position[1].toFixed(1)} m)`);
+  check(c.distance <= 95.1, 'limite de afastamento');
+  await page.screenshot({ path: path.join(OUT, '22-angulo-baixo.png') });
+
+  c = await click('Vista isométrica');
+  await sleep(500);
+  c = await cameraOf(page);
+  check(Math.abs(c.polar - Math.atan(Math.SQRT2)) < 0.03, 'botão "Iso" retorna à inclinação isométrica');
+
+  await page.getByTestId('camera-dock-toggle').click();
+  await sleep(600);
+  check((await panelHidden()) === 'true', 'aba recolhe ao clicar novamente');
+
+  // Redimensionamento
+  await page.setViewportSize({ width: 960, height: 640 });
+  await sleep(1000);
+  const size = await page.evaluate(() => {
+    const cv = document.querySelector('canvas');
+    return { w: cv.clientWidth, h: cv.clientHeight };
+  });
+  check(size.w === 960 && size.h === 640, `canvas acompanha o redimensionamento (${size.w}×${size.h})`);
+  await page.screenshot({ path: path.join(OUT, '23-redimensionado.png') });
+  await page.close();
+}
+
+/** Android (Pixel 7): toque para girar, pinça para zoom, aba retrátil. */
+async function androidChecks(browser, errors) {
+  console.log('\n— Android (toque) —');
+  const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.waitForSelector('canvas');
+  await page.waitForFunction(() => window.__agencyOS?.camera && window.__agencyOS.camera());
+  await sleep(2500);
+  const cdp = await ctx.newCDPSession(page);
+  const touch = (type, points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map(([x, y], id) => ({ x, y, id })) });
+  const vw = page.viewportSize();
+  const midX = vw.width / 2;
+  const midY = vw.height / 2;
+
+  let prev = await cameraOf(page);
+  await touch('touchStart', [[midX - 60, midY]]);
+  for (let i = 1; i <= 12; i++) {
+    await touch('touchMove', [[midX - 60 + i * 12, midY]]);
+    await sleep(16);
+  }
+  await touch('touchEnd', []);
+  await sleep(900);
+  let c = await cameraOf(page);
+  check(Math.abs(c.azimuth - prev.azimuth) > 0.15, `toque com um dedo gira a câmera (${(c.azimuth - prev.azimuth).toFixed(2)} rad)`);
+
+  prev = c;
+  await touch('touchStart', [[midX - 30, midY], [midX + 30, midY]]);
+  for (let i = 1; i <= 12; i++) {
+    await touch('touchMove', [[midX - 30 - i * 10, midY], [midX + 30 + i * 10, midY]]);
+    await sleep(16);
+  }
+  await touch('touchEnd', []);
+  await sleep(900);
+  c = await cameraOf(page);
+  check(c.distance < prev.distance - 1, `pinça com dois dedos aproxima (${prev.distance.toFixed(1)} → ${c.distance.toFixed(1)})`);
+
+  await page.getByTestId('camera-dock-toggle').tap();
+  await sleep(600);
+  check((await page.locator('#camera-dock-panel').getAttribute('aria-hidden')) === 'false', 'aba de câmera abre com toque');
+  prev = await cameraOf(page);
+  await page.getByRole('button', { name: 'Afastar', exact: true }).tap();
+  await sleep(900);
+  c = await cameraOf(page);
+  check(c.distance > prev.distance + 0.5, 'botão da aba funciona com toque');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  check(!overflow, 'Android sem rolagem horizontal');
+  await page.screenshot({ path: path.join(OUT, '24-android.png') });
+  await ctx.close();
 }
 
 /** Lê a cor média de uma região da tela (decodificando a captura no próprio navegador). */
@@ -278,7 +622,7 @@ main()
   })
   .finally(() => {
     try {
-      process.kill(-server.pid, 'SIGTERM');
+      process.kill(-server.pid, 'SIGTERM'); // grupo inteiro (inclui o processo next-server filho)
     } catch {
       server.kill('SIGTERM');
     }

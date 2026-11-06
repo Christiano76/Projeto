@@ -1,3 +1,4 @@
+import { SYSTEM_ONLY_EVENT_TYPES, type AgentEventType } from '@agency/core';
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireViewer } from '@/server/auth';
 import { ingestEvent } from '@/server/events';
@@ -29,6 +30,10 @@ export async function POST(req: NextRequest) {
   try {
     const viewer = await requireViewer({ director: true });
     const raw = await req.json().catch(() => null);
+    if (SYSTEM_ONLY_EVENT_TYPES.includes((raw as { type?: AgentEventType } | null)?.type as AgentEventType)) {
+      // Supervisão só pode ser registrada pelo servidor, a partir de dados reais.
+      return NextResponse.json({ error: 'evento reservado ao sistema' }, { status: 403 });
+    }
     const result = await ingestEvent(getRepository(), {
       companyId: viewer.companyId!,
       raw,

@@ -32,7 +32,7 @@ export function applyEvent(state: EmployeeRuntimeState, event: AgentEvent): Appl
 
     case 'employee.offline': {
       if (state.status === 'offline') return reject(state, 'funcionário já está fora do expediente');
-      return accept(state, at, { status: 'offline', meeting: null });
+      return accept(state, at, { status: 'offline', meeting: null, supervision: null });
     }
 
     case 'task.started': {
@@ -41,9 +41,10 @@ export function applyEvent(state: EmployeeRuntimeState, event: AgentEvent): Appl
       }
       return accept(state, at, {
         status: 'working',
-        currentTask: { id: event.payload.taskId, title: event.payload.title },
+        currentTask: { id: event.payload.taskId, title: event.payload.title, dueAt: event.payload.dueAt ?? null },
         blockedReason: null,
         lastError: null,
+        supervision: null, // trabalho real tem prioridade sobre a ronda
       });
     }
 
@@ -107,6 +108,7 @@ export function applyEvent(state: EmployeeRuntimeState, event: AgentEvent): Appl
       return accept(state, at, {
         status: 'meeting',
         meeting: { id: event.payload.meetingId, topic: event.payload.topic },
+        supervision: null,
       });
     }
 
@@ -126,7 +128,7 @@ export function applyEvent(state: EmployeeRuntimeState, event: AgentEvent): Appl
       if (!AVAILABLE.has(state.status)) {
         return reject(state, `não pode iniciar pausa com status "${state.status}"`);
       }
-      return accept(state, at, { status: 'resting' });
+      return accept(state, at, { status: 'resting', supervision: null });
     }
 
     case 'break.ended': {
@@ -137,6 +139,31 @@ export function applyEvent(state: EmployeeRuntimeState, event: AgentEvent): Appl
     case 'message.sent': {
       if (state.status === 'offline') return reject(state, 'funcionário fora do expediente');
       return accept(state, at, {});
+    }
+
+    case 'supervision.visit_started': {
+      // Ronda só quando o gerente está disponível (sem tarefa, reunião ou pausa).
+      if (state.status !== 'idle') return reject(state, `não pode supervisionar com status "${state.status}"`);
+      if (state.supervision?.targetEmployeeId === event.payload.targetEmployeeId) {
+        return reject(state, 'já está visitando este funcionário');
+      }
+      return accept(state, at, {
+        supervision: { targetEmployeeId: event.payload.targetEmployeeId, reason: event.payload.reason, startedAt: at },
+      });
+    }
+
+    case 'supervision.visit_ended': {
+      if (state.supervision?.targetEmployeeId !== event.payload.targetEmployeeId) {
+        return reject(state, 'não há visita em andamento a este funcionário');
+      }
+      return accept(state, at, { supervision: null });
+    }
+
+    case 'supervision.inspected': {
+      if (state.supervision?.targetEmployeeId !== event.payload.targetEmployeeId) {
+        return reject(state, 'não há visita em andamento a este funcionário');
+      }
+      return accept(state, at, { supervision: null, inspectionsDone: (state.inspectionsDone ?? 0) + 1 });
     }
   }
 }

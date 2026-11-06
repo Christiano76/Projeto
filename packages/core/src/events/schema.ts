@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INSPECTION_FINDINGS, SUPERVISION_REASONS } from '../domain/types';
 
 /**
  * Catálogo de eventos de agentes.
@@ -14,7 +15,9 @@ const shortText = z.string().trim().min(1).max(200);
 export const EVENT_PAYLOAD_SCHEMAS = {
   'employee.online': z.object({}).strict(),
   'employee.offline': z.object({}).strict(),
-  'task.started': z.object({ taskId: id, title: shortText }).strict(),
+  'task.started': z
+    .object({ taskId: id, title: shortText, dueAt: z.iso.datetime({ offset: true }).optional() })
+    .strict(),
   'task.progress': z.object({ taskId: id, note: z.string().trim().min(1).max(500) }).strict(),
   'task.completed': z
     .object({ taskId: id, summary: z.string().trim().max(1000).optional() })
@@ -33,7 +36,33 @@ export const EVENT_PAYLOAD_SCHEMAS = {
   'break.started': z.object({}).strict(),
   'break.ended': z.object({}).strict(),
   'message.sent': z.object({ toEmployeeId: id, subject: shortText }).strict(),
+  /** Gerente inicia visita de supervisão a um funcionário (decidido no servidor). */
+  'supervision.visit_started': z
+    .object({ targetEmployeeId: id, reason: z.enum(SUPERVISION_REASONS) })
+    .strict(),
+  /** Visita encerrada sem inspeção (funcionário saiu, entrou em reunião etc.). */
+  'supervision.visit_ended': z
+    .object({ targetEmployeeId: id, reason: z.enum(['target_unavailable', 'timeout']) })
+    .strict(),
+  /** Inspeção concluída: o servidor consultou o estado real do funcionário. */
+  'supervision.inspected': z
+    .object({
+      targetEmployeeId: id,
+      observedStatus: z.string().min(1).max(20),
+      taskId: id.optional(),
+      taskTitle: shortText.optional(),
+      findings: z.array(z.enum(INSPECTION_FINDINGS)).min(1).max(6),
+      statusMinutes: z.number().int().min(0).max(100000),
+    })
+    .strict(),
 } as const;
+
+/** Eventos que só o servidor pode gerar (nunca aceitos do console manual). */
+export const SYSTEM_ONLY_EVENT_TYPES: readonly AgentEventType[] = [
+  'supervision.visit_started',
+  'supervision.visit_ended',
+  'supervision.inspected',
+];
 
 export type AgentEventType = keyof typeof EVENT_PAYLOAD_SCHEMAS;
 export const AGENT_EVENT_TYPES = Object.keys(EVENT_PAYLOAD_SCHEMAS) as AgentEventType[];
@@ -76,6 +105,9 @@ export const EVENT_LABELS: Record<AgentEventType, string> = {
   'break.started': 'Iniciou pausa',
   'break.ended': 'Encerrou pausa',
   'message.sent': 'Enviou mensagem interna',
+  'supervision.visit_started': 'Iniciou visita de supervisão',
+  'supervision.visit_ended': 'Encerrou visita sem inspeção',
+  'supervision.inspected': 'Concluiu inspeção',
 };
 
 const envelopeSchema = z.object({
@@ -130,6 +162,10 @@ export function describeEvent(event: Pick<AgentEvent, 'type' | 'payload'>): stri
       return `${label}: ${String(p.topic)}`;
     case 'message.sent':
       return `${label}: ${String(p.subject)}`;
+    case 'supervision.inspected': {
+      const f = (p.findings as string[] | undefined) ?? [];
+      return `${label} (${f.includes('ok') ? 'sem problemas' : `${f.length} achado(s)`})`;
+    }
     default:
       return label;
   }

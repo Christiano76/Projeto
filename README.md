@@ -51,9 +51,16 @@ Sem variáveis do Supabase, o app roda em **modo local**: os dados ficam em mem�
 
 ## Controles do escritório
 
-- **Arrastar**: mover a câmera · **botão direito / dois dedos**: girar · **roda / pinça**: zoom
-- **⟲ ⟳**: girar 90° · **Visão geral**: enquadrar tudo · **duplo clique numa sala** ou lista lateral: enquadrar a sala
-- **Clique num funcionário**: abre a ficha (estado real, tarefa, histórico, produtividade)
-- **Paredes**: alterna paredes baixas (corte) e altas
+| Ação | Mouse / teclado | Toque |
+| --- | --- | --- |
+| Girar 360° | arrastar com o botão esquerdo · Q/E | arrastar com um dedo |
+| Inclinar | arrastar na vertical · R/F | arrastar na vertical |
+| Zoom | roda do mouse (em direção ao cursor) · +/− | pinça |
+| Deslocar | botão direito · WASD ou setas | dois dedos |
+
+A **aba de câmera** (ícone de câmera, canto inferior) reúne botões de girar, inclinar, aproximar/afastar e mover (toque = um passo; segurar = movimento contínuo), **Iso** (volta à vista isométrica), **Início** (redefine), **Seguir** (acompanha o funcionário selecionado), paredes, nomes, velocidade e qualidade gráfica (Auto/Alta/Média/Baixa).
+
+- **Clique num funcionário**: ficha com estado real, atividade atual, destino, movimentação recente e histórico. Na ficha do gerente: status de supervisão, inspeção atual, próximo destino, inspecionados, problemas identificados e histórico de supervisão.
+- **Duplo clique numa sala** ou lista lateral: enquadrar a sala.
 
 Até os agentes de IA serem ativados (Fase 2), o diretor pode registrar eventos pelo **console de eventos manuais** (na ficha do funcionário ou em `/admin/events`). Eles ficam marcados como `manual` e passam pelas mesmas regras de transição.

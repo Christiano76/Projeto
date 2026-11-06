@@ -99,22 +99,22 @@ export const OBJECT_SPECS: Record<ObjectType, ObjectSpec> = {
   office_chair: {
     footprint: { w: 0.55, d: 0.55 },
     blocksMovement: false,
-    seats: [{ offset: [0, 0], height: 0.45 }],
+    seats: [{ offset: [0, 0], height: 0.48 }],
   },
   monitor: { footprint: { w: 0.6, d: 0.2 }, blocksMovement: false },
   meeting_table: { footprint: { w: 3.2, d: 1.3 }, blocksMovement: true },
   meeting_chair: {
     footprint: { w: 0.5, d: 0.5 },
     blocksMovement: false,
-    seats: [{ offset: [0, 0], height: 0.45 }],
+    seats: [{ offset: [0, 0], height: 0.48 }],
   },
   sofa: {
     footprint: { w: 2.2, d: 0.9 },
     blocksMovement: true,
     seats: [
-      { offset: [-0.65, 0.1], height: 0.42 },
-      { offset: [0, 0.1], height: 0.42 },
-      { offset: [0.65, 0.1], height: 0.42 },
+      { offset: [-0.65, 0.1], height: 0.48 },
+      { offset: [0, 0.1], height: 0.48 },
+      { offset: [0.65, 0.1], height: 0.48 },
     ],
   },
   armchair: {

@@ -2,9 +2,11 @@
 
 import type { OfficeSnapshot } from '@agency/core';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { subscribeLiveUpdates } from '@/lib/liveUpdates';
+import { useSupervisionLeader } from '@/lib/useSupervisionLeader';
 import { useOfficeStore } from '@/store/officeStore';
+import { CameraDock } from './hud/CameraDock';
 import { EmployeePanel } from './hud/EmployeePanel';
 import { EventFeed } from './hud/EventFeed';
 import { LabelLayer } from './hud/LabelLayer';
@@ -27,7 +29,6 @@ export function OfficeApp({ initialSnapshot, isDirector }: { initialSnapshot: Of
   const applyUpdate = useOfficeStore((s) => s.applyUpdate);
   const setConnection = useOfficeStore((s) => s.setConnection);
   const loaded = useOfficeStore((s) => s.snapshot !== null);
-  const [rotateRequest, setRotateRequest] = useState<{ nonce: number; dir: 1 | -1 }>({ nonce: 0, dir: 1 });
   const wasLive = useRef(false);
 
   useEffect(() => {
@@ -60,15 +61,16 @@ export function OfficeApp({ initialSnapshot, isDirector }: { initialSnapshot: Of
     return unsubscribe;
   }, [initialSnapshot.mode, initialSnapshot.company.id, applyUpdate, setConnection, resync]);
 
-  const rotate = useCallback((dir: 1 | -1) => setRotateRequest((r) => ({ nonce: r.nonce + 1, dir })), []);
+  useSupervisionLeader(applyUpdate);
 
   return (
     <main className="relative h-dvh w-full overflow-hidden">
-      <div className="absolute inset-0">{loaded && <OfficeScene rotateRequest={rotateRequest} />}</div>
+      <div className="absolute inset-0">{loaded && <OfficeScene />}</div>
       {loaded && <LabelLayer />}
-      <TopBar onRotate={rotate} />
+      <TopBar />
       <SidePanel />
       <EventFeed />
+      <CameraDock />
       <EmployeePanel isDirector={isDirector} />
     </main>
   );

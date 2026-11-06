@@ -7,8 +7,17 @@ import type { OfficeLayout } from '../office/layout';
  * trabalho: "digitando" só ocorre com status `working` e uma tarefa atual.
  */
 
-export type Placement = 'desk' | 'meeting' | 'lounge' | 'away';
-export type Pose = 'sit_idle' | 'sit_typing' | 'sit_talking' | 'sit_relax' | 'stand_idle' | 'celebrate';
+export type Placement = 'desk' | 'meeting' | 'lounge' | 'away' | 'visit';
+export type Pose =
+  | 'sit_idle'
+  | 'sit_typing'
+  | 'sit_talking'
+  | 'sit_relax'
+  | 'stand_idle'
+  | 'stand_talk'
+  | 'inspect'
+  | 'wait'
+  | 'celebrate';
 export type Badge = 'blocked' | 'error' | 'task_done' | null;
 
 export interface VisualActivity {
@@ -37,6 +46,8 @@ export function deriveActivity(state: EmployeeRuntimeState, nowMs: number): Visu
     case 'resting':
       return { placement: 'lounge', pose: 'sit_relax', screenOn: false, badge: null };
     case 'idle': {
+      // Gerente em visita de supervisão (decidida e registrada pelo servidor).
+      if (state.supervision) return { placement: 'visit', pose: 'inspect', screenOn: false, badge: null };
       const done = state.lastCompletedTask;
       if (done && nowMs - Date.parse(done.at) < CELEBRATION_MS && nowMs >= Date.parse(done.at)) {
         return { placement: 'desk', pose: 'celebrate', screenOn: false, badge: 'task_done' };
@@ -86,7 +97,7 @@ export function allocateAnchors(
       result.set(e.id, entrance);
       continue;
     }
-    if (placement === 'desk') {
+    if (placement === 'desk' || placement === 'visit') {
       const desk = byKey.get(e.deskSeatKey);
       result.set(e.id, desk ?? standingAnchor(layout, layout.rooms[0]!.key, 0));
       continue;

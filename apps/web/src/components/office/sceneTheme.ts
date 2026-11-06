@@ -93,6 +93,28 @@ export function getThemedMaterial(light: string, dark: string, opts: { unlit?: b
   return mat;
 }
 
+/**
+ * Material temático exclusivo (não compartilhado), por exemplo com textura
+ * própria. Quem cria é responsável por `dispose()` — o registro é limpo junto.
+ */
+export function createThemedMaterial(light: string, dark: string, opts: { map?: THREE.Texture } = {}): THREE.Material {
+  const material = new THREE.MeshStandardMaterial({
+    color: light,
+    flatShading: false,
+    roughness: 0.9,
+    metalness: 0.02,
+    ...(opts.map ? { map: opts.map } : {}),
+  });
+  const entry: ThemedEntry = { material, light: new THREE.Color(light), dark: new THREE.Color(dark) };
+  material.color.copy(entry.light).lerp(entry.dark, themeMix.value);
+  registry.push(entry);
+  material.addEventListener('dispose', () => {
+    const i = registry.indexOf(entry);
+    if (i >= 0) registry.splice(i, 1);
+  });
+  return material;
+}
+
 /** Atualiza todas as cores temáticas para o fator de mistura `t`. */
 export function applyThemedMaterials(t: number) {
   for (const e of registry) e.material.color.copy(e.light).lerp(e.dark, t);

@@ -1,6 +1,10 @@
 'use client';
 
 import { STATUS_COLORS, STATUS_LABELS, describeEvent, type AgentEvent } from '@agency/core';
+import { useAgentInfo } from '@/lib/simulationHost';
+import { useCameraStore } from '@/store/cameraStore';
+import { Icon } from './Icons';
+import { SupervisionSection } from './SupervisionSection';
 import { useEffect, useState } from 'react';
 import { EventConsole } from '@/components/EventConsole';
 import { formatRelative, formatTime } from '@/lib/format';
@@ -20,6 +24,9 @@ export function EmployeePanel({ isDirector }: { isDirector: boolean }) {
   const applyUpdate = useOfficeStore((s) => s.applyUpdate);
   const [history, setHistory] = useState<AgentEvent[]>([]);
   const [showConsole, setShowConsole] = useState(false);
+  const agent = useAgentInfo(employee?.id ?? null);
+  const follow = useCameraStore((s) => s.follow);
+  const setFollow = useCameraStore((s) => s.setFollow);
 
   // Histórico completo do funcionário (servidor) + eventos ao vivo do feed.
   useEffect(() => {
@@ -45,7 +52,7 @@ export function EmployeePanel({ isDirector }: { isDirector: boolean }) {
   return (
     <aside
       key={employee.id}
-      className={`glass ${presence === 'in' ? 'anim-panel-in' : 'anim-panel-out pointer-events-none'} absolute right-3 top-20 z-30 flex max-h-[calc(100dvh-14rem)] w-80 flex-col overflow-hidden rounded-2xl max-sm:inset-x-3 max-sm:top-auto max-sm:bottom-3 max-sm:max-h-[60dvh] max-sm:w-auto`}
+      className={`glass ${presence === 'in' ? 'anim-panel-in' : 'anim-panel-out pointer-events-none'} absolute right-3 top-20 z-30 flex max-h-[calc(100dvh-14rem)] w-80 flex-col overflow-hidden rounded-2xl max-sm:inset-x-3 max-sm:top-auto max-sm:bottom-16 max-sm:max-h-[55dvh] max-sm:w-auto`}
       aria-label={`Ficha de ${employee.name}`}
     >
       <div className="flex items-start gap-3 border-b border-line p-3">
@@ -78,6 +85,37 @@ export function EmployeePanel({ isDirector }: { isDirector: boolean }) {
       </div>
 
       <div className="scrollbar-thin min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-sm">
+        <Info title="Agora">
+          <div className="font-medium" data-testid="agent-activity">
+            {agent?.activity ?? STATUS_LABELS[rt.status]}
+          </div>
+          {agent && (agent.phase === 'walking' || agent.phase === 'standing_up' || agent.phase === 'entering') && agent.destination && (
+            <div className="mt-0.5 flex items-center gap-1 text-xs text-accent" data-testid="agent-destination">
+              <span className="status-dot h-1.5 w-1.5" data-live="true" style={{ background: 'var(--accent)' }} />
+              Caminhando até {agent.destination}
+              {agent.waitReason && <span className="text-muted"> · {agent.waitReason}</span>}
+            </div>
+          )}
+          {agent && agent.phase !== 'walking' && agent.destination && agent.phase !== 'hidden' && (
+            <div className="mt-0.5 text-xs text-muted">Local: {agent.destination}</div>
+          )}
+          <div className="mt-0.5 text-xs text-muted">
+            Última atividade: {merged[0] ? `${describeEvent(merged[0])} · ${formatRelative(merged[0].createdAt)}` : agent?.history[0]?.label ?? '—'}
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost dock-btn mt-2 h-8 w-full gap-1.5 text-xs"
+            aria-pressed={follow}
+            onClick={() => setFollow(!follow)}
+            data-testid="follow-toggle"
+          >
+            <Icon name="follow" className="h-3.5 w-3.5" />
+            {follow ? 'Acompanhando com a câmera' : 'Acompanhar com a câmera'}
+          </button>
+        </Info>
+
+        {employee.isManager && <SupervisionSection manager={employee} feed={feed} history={history} />}
+
         {rt.currentTask && (
           <Info title="Tarefa atual">
             <div className="font-medium">{rt.currentTask.title}</div>
@@ -131,6 +169,22 @@ export function EmployeePanel({ isDirector }: { isDirector: boolean }) {
               ))}
             </ul>
           )}
+        </Info>
+
+        <Info title="Movimentação recente">
+          {!agent || agent.history.length === 0 ? (
+            <div className="text-xs text-muted">Sem deslocamentos registrados.</div>
+          ) : (
+            <ul className="space-y-0.5" data-testid="movement-history">
+              {agent.history.slice(0, 8).map((h, i) => (
+                <li key={`${h.at}-${i}`} className="flex gap-2 text-xs">
+                  <span className="shrink-0 font-mono text-subtle">{formatTime(new Date(h.at).toISOString())}</span>
+                  <span className="text-fg">{h.label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {agent && <div className="mt-1 text-[11px] text-subtle">Distância percorrida: {agent.distance.toFixed(0)} m</div>}
         </Info>
 
         {isDirector && (

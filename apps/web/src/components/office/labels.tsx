@@ -46,7 +46,8 @@ export function LabelProjector() {
         continue;
       }
       v.project(camera);
-      const offscreen = v.x < -1.2 || v.x > 1.2 || v.y < -1.2 || v.y > 1.2;
+      // Atrás da câmera (perspectiva) ou fora da tela => oculto.
+      const offscreen = v.z > 1 || v.x < -1.2 || v.x > 1.2 || v.y < -1.2 || v.y > 1.2;
       el.style.visibility = offscreen ? 'hidden' : 'visible';
       if (offscreen) continue;
       const x = ((v.x + 1) / 2) * size.width;

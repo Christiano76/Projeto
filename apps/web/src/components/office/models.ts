@@ -58,9 +58,9 @@ export const MODELS: Record<ObjectType, Part[]> = {
     { geometry: box([1.3, 0.35, 0.03]), position: [0, 0.5, -0.32], color: WOOD_DARK },
   ],
   exec_desk: [
-    { geometry: box([1.8, 0.06, 0.85]), position: [0, 0.74, 0], color: WOOD_DARK, castShadow: true },
-    { geometry: box([0.08, 0.71, 0.8]), position: [0.84, 0.355, 0], color: WOOD_DARK, castShadow: true },
-    { geometry: box([0.08, 0.71, 0.8]), position: [-0.84, 0.355, 0], color: WOOD_DARK, castShadow: true },
+    { geometry: box([1.8, 0.06, 0.85]), position: [0, 0.725, 0], color: WOOD_DARK, castShadow: true },
+    { geometry: box([0.08, 0.695, 0.8]), position: [0.84, 0.3475, 0], color: WOOD_DARK, castShadow: true },
+    { geometry: box([0.08, 0.695, 0.8]), position: [-0.84, 0.3475, 0], color: WOOD_DARK, castShadow: true },
     { geometry: box([1.6, 0.45, 0.04]), position: [0, 0.45, -0.38], color: WOOD_DARK },
   ],
   monitor: [
@@ -70,7 +70,7 @@ export const MODELS: Record<ObjectType, Part[]> = {
     { geometry: box([0.42, 0.02, 0.14]), position: [0, 0.765, 0.3], color: '#475569' },
   ],
   office_chair: [
-    { geometry: cyl(0.26, 0.26, 0.04, 5), position: [0, 0.04, 0], color: DARK },
+    { geometry: cyl(0.26, 0.26, 0.04, 5), position: [0, 0.02, 0], color: DARK },
     { geometry: cyl(0.03, 0.03, 0.36, 6), position: [0, 0.24, 0], color: METAL },
     { geometry: box([0.48, 0.08, 0.46]), position: [0, 0.44, 0], color: '#1f2937', castShadow: true },
     { geometry: box([0.46, 0.5, 0.06]), position: [0, 0.74, -0.22], color: '#1f2937', castShadow: true },
@@ -151,7 +151,7 @@ export const MODELS: Record<ObjectType, Part[]> = {
     ...legs4(1.6, 0.5, 0.4, METAL),
   ],
   rug: [
-    { geometry: box([2.4, 0.012, 1.6]), position: [0, 0.006, 0], color: 'prop:color', fallbackColor: '#3d4f66' },
+    { geometry: box([2.4, 0.008, 1.6]), position: [0, 0.005, 0], color: 'prop:color', fallbackColor: '#3d4f66' },
   ],
   server_rack: [
     { geometry: box([0.7, 2.0, 0.8]), position: [0, 1.0, 0], color: '#111827', castShadow: true },

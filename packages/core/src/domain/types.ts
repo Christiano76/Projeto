@@ -62,7 +62,34 @@ export const STATUS_COLORS: Record<EmployeeStatus, string> = {
 export interface TaskRef {
   id: string;
   title: string;
+  /** Prazo da tarefa (ISO-8601), quando informado. Usado para detectar atrasos. */
+  dueAt?: string | null;
 }
+
+/** Motivos/achados de uma inspeção do gerente (sempre derivados do estado real). */
+export const INSPECTION_FINDINGS = ['error', 'blocked', 'overdue', 'long_running', 'idle_long', 'ok'] as const;
+export type InspectionFinding = (typeof INSPECTION_FINDINGS)[number];
+
+export const SUPERVISION_REASONS = ['error', 'blocked', 'overdue', 'long_running', 'idle_long', 'routine'] as const;
+export type SupervisionReason = (typeof SUPERVISION_REASONS)[number];
+
+export const FINDING_LABELS: Record<InspectionFinding, string> = {
+  error: 'Falha na última tarefa',
+  blocked: 'Tarefa bloqueada',
+  overdue: 'Tarefa atrasada',
+  long_running: 'Tarefa em andamento há muito tempo',
+  idle_long: 'Ocioso há muito tempo',
+  ok: 'Sem problemas',
+};
+
+export const SUPERVISION_REASON_LABELS: Record<SupervisionReason, string> = {
+  error: 'Atender falha',
+  blocked: 'Destravar tarefa bloqueada',
+  overdue: 'Verificar tarefa atrasada',
+  long_running: 'Acompanhar tarefa longa',
+  idle_long: 'Verificar funcionário ocioso',
+  routine: 'Ronda de rotina',
+};
 
 export interface EmployeeRuntimeState {
   status: EmployeeStatus;
@@ -75,6 +102,13 @@ export interface EmployeeRuntimeState {
   lastEventAt: string | null;
   tasksCompleted: number;
   tasksFailed: number;
+  /**
+   * Visita de supervisão em andamento (somente gerente). Opcional para manter
+   * compatibilidade com estados gravados antes deste campo existir.
+   */
+  supervision?: { targetEmployeeId: string; reason: SupervisionReason; startedAt: string } | null;
+  /** Total de inspeções concluídas (somente gerente). */
+  inspectionsDone?: number;
   /** Incrementado a cada evento aplicado — usado para concorrência otimista. */
   version: number;
 }
@@ -132,6 +166,8 @@ export function createInitialRuntimeState(
     lastEventAt: null,
     tasksCompleted: 0,
     tasksFailed: 0,
+    supervision: null,
+    inspectionsDone: 0,
     version: 0,
   };
 }

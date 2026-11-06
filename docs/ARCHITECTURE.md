@@ -177,3 +177,30 @@ Os modelos atuais são procedurais (peças em `components/office/models.ts`), o 
 - **Sem flash**: `THEME_BOOT_SCRIPT` roda no `<head>` antes da pintura e define `data-theme` a partir da preferência salva (`localStorage['agency-os:theme']`) ou de `prefers-color-scheme`.
 - **Troca animada**: a classe temporária `theme-transition` anima cores da interface; o 3D interpola luz e materiais.
 - **Movimento**: tokens de duração/curva (`--dur*`, `--ease-*`); utilitários `btn`, `row-interactive`, `anim-panel-in/out`, `collapsible`, `status-dot[data-live]`, `anim-pop`, `bar-fill`. Com `prefers-reduced-motion`, animações CSS, troca de tema, pulso dos anéis 3D e transições de câmera tornam-se instantâneos.
+
+## 13. Escritório vivo: movimento, rotinas e supervisão
+
+**Simulação de movimento** (`packages/core/src/sim/simulation.ts`, sem dependência de renderização, testada em Node):
+- A* na grade da planta (paredes, portas, móveis) + obstáculos dinâmicos (pessoas paradas) ao recalcular.
+- Velocidade própria por pessoa, aceleração/frenagem, desaceleração em curvas, giro suave.
+- Desvio local: de frente, ambos passam pela direita; mesma direção, segue; cruzamento ou bloqueio, quem tem menor prioridade cede (ordem estrita evita impasse). Separação mínima de 0,52 m garantida a cada subpasso.
+- Fases: entrar → levantar → caminhar → chegar (virar) → sentar / em pé; quem fica preso espera e recalcula. **Nunca há teletransporte.**
+- Recalcula no máximo 3 caminhos por quadro; animação de membros só para quem está no campo de visão.
+
+**Comportamento** (`sim/behavior.ts`), por prioridade:
+1. Estado real: fora do expediente → sai pela recepção; reunião → sala de reuniões; pausa → descanso; trabalhando/bloqueado/erro → própria mesa (só digita com tarefa real).
+2. Gerente com visita de supervisão registrada → vai até o funcionário.
+3. Mensagem interna real (`message.sent`) → o remetente leva a mensagem ao colega, que o aguarda na mesa.
+4. Ocioso há mais de 15 s → rotina **determinística** (mesmo resultado em todos os navegadores): ficar na mesa, café/bebedouro/quadro/estante, conversar com um colega também ocioso, circular. Sempre rotulada como ociosidade, nunca como trabalho.
+
+**Supervisão do gerente** (`supervision/supervision.ts` + `apps/web/src/server/supervision.ts`):
+- O servidor escolhe quem visitar com base no estado real: falha > bloqueio > atraso (`dueAt`) > tarefa longa > ociosidade longa > rotina; respeita intervalos entre inspeções; urgências interrompem a ronda; após 3 inspeções o gerente volta à sala, salvo urgência.
+- Uma aba por empresa é "líder" (concessão renovável de 20 s) e apenas avisa o ritmo (`/api/supervision/tick`). Quando o avatar chega e observa por 3,5 s, pede o registro (`/api/supervision/inspect`): o servidor **consulta o estado atual do funcionário** e grava `supervision.inspected` (origem `system`) com status observado, tarefa e achados.
+- Eventos `supervision.*` são recusados no console manual (403). Trabalho real, reunião ou pausa do gerente cancelam a ronda pela máquina de estados.
+- Limitação: a concessão de liderança fica na memória do processo; com várias instâncias do servidor pode haver mais de um líder, mas a máquina de estados impede registros inconsistentes. Sem nenhum escritório aberto, não há ronda (o worker da Fase 3 assumirá).
+
+**Câmera** (`components/office/CameraRig.tsx`, camera-controls): perspectiva (FOV 30°), órbita 360°, inclinação limitada a 7°–78° (nunca atravessa o chão), distância 3,5–95 m, alvo restrito à área do prédio, zoom em direção ao cursor, transições suaves, teclado e toque. A vista isométrica original continua disponível (botões Iso/Início).
+
+**Chão**: cada superfície horizontal tem sua faixa de altura (chão externo, laje, piso, soleiras), eliminando o z-fighting que existia entre laje e piso em y = 0. Piso com textura procedural alinhada à grade global (continuidade entre salas), soleiras nas portas, paredes nascendo na base do piso, móveis e solas dos personagens apoiados exatamente em y = 0 (verificado por teste).
+
+**Qualidade gráfica**: Alta (sombras 2048, DPR até 2), Média (sombras 1024, DPR até 1,5, padrão em celulares), Baixa (sem sombras e antialias, DPR 1). No modo Auto, o `PerformanceMonitor` reduz o nível se a taxa de quadros cair.
